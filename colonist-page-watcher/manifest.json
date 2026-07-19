@@ -1,0 +1,72 @@
+{
+    "manifest_version":  3,
+    "name":  "Colonist Page Watcher",
+    "version":  "0.1.8",
+    "description":  "Tracks Colonist game events and cards locally in an automatic Firefox extension dashboard.",
+    "permissions":  [
+                        "storage",
+                        "activeTab",
+                        "tabs",
+                        "unlimitedStorage"
+                    ],
+    "host_permissions":  [
+                             "https://colonist.io/*",
+                             "https://*.colonist.io/*"
+                         ],
+    "content_scripts":  [
+                            {
+                                "matches":  [
+                                                "https://colonist.io/*",
+                                                "https://*.colonist.io/*"
+                                            ],
+                                "js":  [
+                                           "src/core.js",
+                                           "src/ws-core.js",
+                                           "src/content.js"
+                                       ],
+                                "run_at":  "document_start"
+                            }
+                        ],
+    "action":  {
+                   "default_title":  "Colonist Watcher",
+                   "default_popup":  "src/popup.html",
+                   "default_icon":  {
+                                        "16":  "assets/icon-16.png",
+                                        "32":  "assets/icon-32.png"
+                                    }
+               },
+    "browser_specific_settings":  {
+                                      "gecko":  {
+                                                    "id":  "colonist-page-watcher@catanai.local",
+                                                    "strict_min_version":  "109.0",
+                                                    "data_collection_permissions":  {
+                                                                                        "required":  [
+                                                                                                         "none"
+                                                                                                     ]
+                                                                                    }
+                                                }
+                                  },
+    "web_accessible_resources":  [
+                                     {
+                                         "resources":  [
+                                                           "src/page-websocket-hook.js",
+                                                           "src/ws-core.js"
+                                                       ],
+                                         "matches":  [
+                                                         "https://colonist.io/*",
+                                                         "https://*.colonist.io/*"
+                                                     ]
+                                     }
+                                 ],
+    "background":  {
+                       "scripts":  [
+                                       "src/background.js"
+                                   ]
+                   },
+    "icons":  {
+                  "16":  "assets/icon-16.png",
+                  "32":  "assets/icon-32.png",
+                  "48":  "assets/icon-48.png",
+                  "96":  "assets/icon-96.png"
+              }
+}

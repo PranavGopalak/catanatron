@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Colonist Watcher</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <h1>Colonist Watcher</h1>
+          <p id="subtitle">Connecting to game</p>
+        </div>
+        <div class="actions">
+          <button id="refresh" type="button">Refresh</button>
+          <span id="headerVersion" class="version-badge">v0.0.0</span>
+          <span id="status" class="status">Loading</span>
+        </div>
+      </header>
+
+
+      <section class="win-watch panel" aria-label="Current win risk">
+        <div class="section-head compact-head">
+          <h2>Win Watch</h2>
+          <p id="winWatchMeta">Checking current build and hidden VP risk.</p>
+        </div>
+        <div id="winWatch" class="win-watch-grid"></div>
+      </section>
+
+      <section id="tradeVerdict" class="trade-verdict idle" aria-label="Latest trade check">
+        <div>
+          <span>Latest Trade Check</span>
+          <strong id="tradeVerdictTitle">Waiting for trade</strong>
+        </div>
+        <p id="tradeVerdictBody">Every 0.5 seconds, the dashboard checks the newest trade against tracked cards and VP.</p>
+      </section>
+      <section id="tradeWarnings" class="trade-warnings" aria-label="Trade warnings"></section>
+
+      <section class="layout">
+        <section class="panel tracker-panel" aria-label="Card tracker">
+          <div class="section-head">
+            <h2>Players</h2>
+            <p id="trackerMeta">Waiting for game data.</p>
+          </div>
+          <div id="players" class="players"></div>
+        </section>
+
+        <aside class="panel hand-panel" aria-label="Your hand">
+          <div class="section-head compact-head">
+            <h2>Your Hand</h2>
+            <p id="handMeta">Waiting for snapshot.</p>
+          </div>
+          <div id="hand" class="resource-row hand-row"></div>
+        </aside>
+      </section>
+
+      <section class="dev-watch panel" aria-label="Development card deck watch">
+              <div class="section-head compact-head">
+                <h2>Dev Deck Watch</h2>
+                <p id="devDeckMeta">Waiting for dev card signals.</p>
+              </div>
+              <div id="devDeckWatch" class="dev-watch-grid"></div>
+            </section>
+
+      <details class="diagnostics">
+        <summary>Session details</summary>
+        <section class="state-strip" aria-label="Live tracker state">
+                <div><span>Source</span><strong id="stateSource">Storage</strong></div>
+                <div><span>Updated</span><strong id="stateUpdated">Never</strong></div>
+                <div><span>WS Frames</span><strong id="stateFrames">0</strong></div>
+                <div><span>Events</span><strong id="stateEvents">0</strong></div>
+                <div><span>Session Reset</span><strong id="stateReset">Never</strong></div>
+                <div><span>Version</span><strong id="stateVersion">Unknown</strong></div>
+              </section>
+        
+              <section class="metrics" aria-label="Game summary">
+                <div><strong id="rolls">0</strong><span>Rolls</span></div>
+                <div><strong id="gains">0</strong><span>Gains</span></div>
+                <div><strong id="trades">0</strong><span>Trades</span></div>
+                <div><strong id="builds">0</strong><span>Builds</span></div>
+                <div><strong id="uncertain">0</strong><span>Unresolved</span></div>
+              </section>
+      </details>
+
+      <section class="panel" aria-label="Recent events">
+        <div class="section-head">
+          <h2>Recent Events</h2>
+          <p id="eventMeta">Latest useful game events.</p>
+        </div>
+        <ol id="events" class="events"></ol>
+      </section>
+    </main>
+    <script src="../src/ws-core.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,53 @@
+{
+    "exportedAt":  "2026-06-23T00:00:00.000Z",
+    "rawLogs":  [
+                    {
+                        "id":  "1",
+                        "line":  "Alice rolled 8",
+                        "source":  "sample",
+                        "capturedAt":  "2026-06-23T00:00:01.000Z"
+                    },
+                    {
+                        "id":  "2",
+                        "line":  "Alice received 1 brick and 1 lumber",
+                        "source":  "sample",
+                        "capturedAt":  "2026-06-23T00:00:02.000Z"
+                    },
+                    {
+                        "id":  "3",
+                        "line":  "Bob received 2 grain",
+                        "source":  "sample",
+                        "capturedAt":  "2026-06-23T00:00:03.000Z"
+                    },
+                    {
+                        "id":  "4",
+                        "line":  "Alice built a road",
+                        "source":  "sample",
+                        "capturedAt":  "2026-06-23T00:00:04.000Z"
+                    },
+                    {
+                        "id":  "5",
+                        "line":  "Bob bought a development card",
+                        "source":  "sample",
+                        "capturedAt":  "2026-06-23T00:00:05.000Z"
+                    },
+                    {
+                        "id":  "6",
+                        "line":  "Alice stole 1 wool",
+                        "source":  "sample",
+                        "capturedAt":  "2026-06-23T00:00:06.000Z"
+                    },
+                    {
+                        "id":  "7",
+                        "line":  "Alice wants to trade 1 brick for 1 ore",
+                        "source":  "sample",
+                        "capturedAt":  "2026-06-23T00:00:07.000Z"
+                    },
+                    {
+                        "id":  "8",
+                        "line":  "Bob wants to trade 2 wheat for 1 sheep",
+                        "source":  "sample",
+                        "capturedAt":  "2026-06-23T00:00:08.000Z"
+                    }
+                ]
+}

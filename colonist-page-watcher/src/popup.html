@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Colonist Watcher</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <div>
+          <h1>Colonist Watcher</h1>
+          <p id="status">Waiting for page events</p>
+        </div>
+        <div class="topbar-actions">
+          <span id="popupVersion" class="version-badge">v0.0.0</span>
+          <button id="openDashboard" class="primary-action" type="button">Dashboard</button>
+          <button id="scan" class="secondary-action" type="button" title="Scan the active Colonist tab">Scan</button>
+        </div>
+      </header>
+
+      <section class="summary" aria-label="Event summary">
+        <div><span id="rollCount">0</span><small>Rolls</small></div>
+        <div><span id="gainCount">0</span><small>Gains</small></div>
+        <div><span id="tradeCount">0</span><small>Trades</small></div>
+        <div><span id="buildCount">0</span><small>Builds</small></div>
+      </section>
+
+      <section class="identity" aria-label="Player identity">
+        <label for="localPlayerName">Your Colonist name</label>
+        <input id="localPlayerName" type="text" autocomplete="off" spellcheck="false" />
+      </section>
+
+      <section class="resource-map" aria-label="Resource mapping">
+        <div class="resource-map__header">
+          <strong>Card Mapping</strong>
+          <p id="resourceMapStatus">Protocol card IDs</p>
+        </div>
+        <div class="resource-map__suggestion-row"><p id="resourceMapSuggestion" class="resource-map__suggestion">Best guess waits for hand data.</p><button id="applyResourceMapSuggestion" type="button" disabled>Apply Guess</button></div>
+        <div class="resource-map__grid">
+          <label>Card 1<select id="resourceMapCard1"><option value="card_1">Card 1</option><option value="lumber">Lumber</option><option value="brick">Brick</option><option value="wool">Wool</option><option value="grain">Grain</option><option value="ore">Ore</option></select></label>
+          <label>Card 2<select id="resourceMapCard2"><option value="card_2">Card 2</option><option value="lumber">Lumber</option><option value="brick">Brick</option><option value="wool">Wool</option><option value="grain">Grain</option><option value="ore">Ore</option></select></label>
+          <label>Card 3<select id="resourceMapCard3"><option value="card_3">Card 3</option><option value="lumber">Lumber</option><option value="brick">Brick</option><option value="wool">Wool</option><option value="grain">Grain</option><option value="ore">Ore</option></select></label>
+          <label>Card 4<select id="resourceMapCard4"><option value="card_4">Card 4</option><option value="lumber">Lumber</option><option value="brick">Brick</option><option value="wool">Wool</option><option value="grain">Grain</option><option value="ore">Ore</option></select></label>
+          <label>Card 5<select id="resourceMapCard5"><option value="card_5">Card 5</option><option value="lumber">Lumber</option><option value="brick">Brick</option><option value="wool">Wool</option><option value="grain">Grain</option><option value="ore">Ore</option></select></label>
+        </div>
+      </section>
+
+      <section class="calibration" aria-label="Hand calibration">
+        <div class="calibration__header">
+          <strong>Your Latest Hand</strong>
+          <p id="calibrationStatus">Waiting for hand data</p>
+        </div>
+        <div id="calibrationHand" class="resource-grid"></div>
+        <p id="calibrationDeltaStatus" class="calibration-delta-status">Tracker check waits for mapped hand data.</p>
+        <div id="calibrationDelta" class="resource-grid"></div>
+      </section>
+
+      <section class="controls">
+        <select id="filter" aria-label="Filter events">
+          <option value="all">All parsed events</option>
+          <option value="raw">Tracker raw logs</option>
+          <option value="all_raw">All captured text</option>
+          <option value="websocket">WebSocket frames</option>
+          <option value="dice_roll">Dice rolls</option>
+          <option value="resource_gain">Resource gains</option>
+          <option value="player_trade">Player trades</option>
+          <option value="bank_trade">Bank trades</option>
+          <option value="robber">Robber</option>
+          <option value="steal">Steals</option>
+          <option value="discard">Discards</option>
+          <option value="development_card_bought">Dev cards bought</option>
+          <option value="development_card_played">Dev cards played</option>
+          <option value="unknown">Unknown</option>
+        </select>
+        <button id="newGame" type="button">Reset Game</button>
+      </section>
+      <p id="captureHealth" class="capture-health">No capture session yet.</p>
+
+      <section class="diagnostics" aria-label="Parser diagnostics">
+        <div>
+          <strong id="coverageTitle">Not enough evidence yet</strong>
+          <p id="coverageDetails">Capture a few turns, then check this panel.</p>
+        </div>
+        <div class="diagnostic-actions">
+          <button id="copyReport" type="button">Copy Report</button>
+                    <button id="copyRaw" type="button">Copy Raw</button>
+          <button id="exportLogs" type="button">Export JSON</button>
+        </div>
+      </section>
+      <section class="tracker" aria-label="Card tracker">
+        <div class="tracker-header">
+          <div>
+            <strong>Card Tracker</strong>
+            <p id="trackerStatus">Waiting for trackable events.</p>
+          </div>
+        </div>
+        <div id="trackerPlayers" class="tracker-players"></div>
+      </section>
+
+      <section class="patterns" aria-label="Pattern candidates">
+        <div class="patterns-header">
+          <strong>Pattern Candidates</strong>
+          <p>Parser clues for missed wording.</p>
+        </div>
+        <div id="patternCandidates" class="pattern-list"></div>
+      </section>
+      <ol id="events" class="events" aria-live="polite"></ol>
+    </main>
+    <script src="core.js"></script>
+    <script src="ws-core.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

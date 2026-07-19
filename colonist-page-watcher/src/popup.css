@@ -1,0 +1,509 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  color: #1c1b18;
+  background: #f7f3eb;
+}
+
+body {
+  width: 380px;
+  min-height: 590px;
+  margin: 0;
+}
+
+button,
+select,
+input {
+  font: inherit;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 590px;
+  padding: 14px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.version-badge {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 6px;
+  color: #fff;
+  background: rgba(255,255,255,0.12);
+  font-size: 12px;
+  font-weight: 800;
+}
+.topbar-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  min-width: 112px;
+}
+
+h1 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+p {
+  margin: 0;
+  color: #635b4f;
+  font-size: 12px;
+}
+
+button,
+select,
+input {
+  border: 1px solid #b9aa92;
+  border-radius: 6px;
+  background: #fffdf8;
+  color: #1c1b18;
+  min-height: 34px;
+}
+
+button {
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #efe5d2;
+}
+
+.primary-action {
+  border-color: #17614f;
+  background: #17614f;
+  color: #fffdf4;
+  font-weight: 800;
+}
+
+.primary-action:hover {
+  background: #0e3f35;
+}
+
+.secondary-action {
+  min-height: 30px;
+  color: #635b4f;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.summary div {
+  border: 1px solid #d6c8b3;
+  border-radius: 6px;
+  padding: 8px 6px;
+  background: #fffaf1;
+  text-align: center;
+}
+
+.summary span {
+  display: block;
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.summary small {
+  color: #675f52;
+  font-size: 11px;
+}
+
+.identity {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.identity label {
+  color: #635b4f;
+  font-size: 12px;
+}
+
+.identity input {
+  min-width: 0;
+  padding: 0 8px;
+}
+
+/* Protocol card enums are fixed; legacy calibration controls stay out of the normal UI. */
+.resource-map {
+  display: none;
+  display: grid;
+  gap: 8px;
+  border: 1px solid #d6c8b3;
+  border-radius: 6px;
+  padding: 9px;
+  background: #fffdf8;
+}
+
+.resource-map__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.resource-map__header strong {
+  font-size: 13px;
+}
+
+.resource-map__suggestion-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.resource-map__suggestion-row button {
+  min-height: 30px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
+.resource-map__suggestion-row button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.resource-map__suggestion {
+  color: #635b4f;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.resource-map__grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.resource-map__grid label {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  color: #635b4f;
+  font-size: 10px;
+}
+
+.resource-map__grid select {
+  width: 100%;
+  min-height: 30px;
+  padding: 0 4px;
+  font-size: 11px;
+}
+
+
+.calibration {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #d6c8b3;
+  border-radius: 6px;
+  padding: 9px;
+  background: #fffaf1;
+}
+
+.calibration__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.calibration__header strong {
+  font-size: 13px;
+}
+
+.calibration-delta-status {
+  color: #635b4f;
+  font-size: 11px;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.diagnostics {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #d6c8b3;
+  border-radius: 6px;
+  padding: 10px;
+  background: #fffaf1;
+}
+
+.diagnostics strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+
+.diagnostic-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+select {
+  padding: 0 8px;
+}
+
+.events {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.event {
+  border: 1px solid #d8cbb8;
+  border-left: 5px solid #6a7f40;
+  border-radius: 6px;
+  background: #fffdf8;
+  padding: 9px 10px;
+}
+
+.event[data-type="unknown"] {
+  border-left-color: #8c8172;
+}
+
+.event[data-type="dice_roll"] {
+  border-left-color: #355c9d;
+}
+
+.event[data-type="trade"],
+.event[data-type="player_trade"],
+.event[data-type="bank_trade"] {
+  border-left-color: #95621b;
+}
+
+.event[data-type="robber"] {
+  border-left-color: #1f1f1f;
+}
+
+.event[data-type="steal"] {
+  border-left-color: #6d3e91;
+}
+
+.event[data-type="discard"] {
+  border-left-color: #a33f3f;
+}
+
+.event[data-type="development_card_bought"],
+.event[data-type="development_card_played"] {
+  border-left-color: #17716a;
+}
+
+.event[data-type="longest_road"],
+.event[data-type="largest_army"] {
+  border-left-color: #c49825;
+}
+
+.event-type {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #5f584e;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  margin-bottom: 4px;
+}
+
+.event-line {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.empty {
+  color: #665d51;
+  border: 1px dashed #c9bca8;
+  border-radius: 6px;
+  padding: 18px 12px;
+  text-align: center;
+}
+
+.event[data-type="raw"] {
+  border-left-color: #4f6f75;
+}
+.tracker {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #d6c8b3;
+  border-radius: 6px;
+  padding: 10px;
+  background: #fffdf8;
+}
+
+.tracker-header strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+
+.tracker-players {
+  display: grid;
+  gap: 8px;
+}
+
+.tracker-empty {
+  color: #665d51;
+  border: 1px dashed #c9bca8;
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.player-track {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #e0d3bf;
+  border-radius: 6px;
+  padding: 9px;
+  background: #fffaf1;
+}
+
+.player-track__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.player-track__header strong {
+  font-size: 13px;
+}
+
+.player-track__header span,
+.tracker-meta {
+  color: #635b4f;
+  font-size: 11px;
+}
+
+.resource-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.resource-chip {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  border: 1px solid #d7c9b2;
+  border-radius: 5px;
+  padding: 5px 4px;
+  background: #ffffff;
+  text-align: center;
+}
+
+.resource-chip span {
+  overflow: hidden;
+  color: #5f584e;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resource-chip strong {
+  font-size: 14px;
+}
+
+.resource-chip.brick {
+  border-color: #b56b55;
+}
+
+.resource-chip.lumber {
+  border-color: #477350;
+}
+
+.resource-chip.ore {
+  border-color: #73717c;
+}
+
+.resource-chip.grain {
+  border-color: #c9aa41;
+}
+
+.resource-chip.wool {
+  border-color: #6d9b66;
+}
+.capture-health {
+  border: 1px solid #d6c8b3;
+  border-radius: 6px;
+  background: #fffdf8;
+  padding: 8px 10px;
+  color: #5f584e;
+  font-size: 11px;
+}
+.patterns {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #d6c8b3;
+  border-radius: 6px;
+  padding: 10px;
+  background: #fffdf8;
+}
+
+.patterns-header strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+
+.pattern-list {
+  display: grid;
+  gap: 8px;
+}
+
+.pattern-item,
+.pattern-empty {
+  border: 1px solid #e0d3bf;
+  border-radius: 6px;
+  padding: 8px;
+  background: #fffaf1;
+}
+
+.pattern-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.pattern-title strong {
+  font-size: 12px;
+}
+
+.pattern-title span,
+.pattern-item p,
+.pattern-empty {
+  color: #635b4f;
+  font-size: 11px;
+}
+
+.pattern-item p {
+  margin: 0;
+  line-height: 1.35;
+}
+/* The popup is a launcher and recovery surface; live tracking belongs in the dashboard. */
+.summary, .resource-map, .calibration, .tracker, .patterns, .events, #filter { display: none; }

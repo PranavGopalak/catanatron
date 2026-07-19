@@ -1,0 +1,13 @@
+Colonist Watcher Raw Logs
+Session: sample-session
+Last sequence: 8
+Raw logs: 8
+
+#1 2026-06-23T00:00:01.000Z Alice rolled 8
+#2 2026-06-23T00:00:02.000Z Alice received 1 brick and 1 lumber
+#3 2026-06-23T00:00:03.000Z Bob received 2 grain
+#4 2026-06-23T00:00:04.000Z Alice built a road
+#5 2026-06-23T00:00:05.000Z Bob bought a development card
+#6 2026-06-23T00:00:06.000Z Alice stole 1 wool
+#7 2026-06-23T00:00:07.000Z Alice wants to trade 1 brick for 1 ore
+#8 2026-06-23T00:00:08.000Z Bob wants to trade 2 wheat for 1 sheep
