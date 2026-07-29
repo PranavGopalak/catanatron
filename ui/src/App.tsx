@@ -1,5 +1,4 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { SnackbarProvider } from "notistack";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -7,10 +6,18 @@ import Fade from "@mui/material/Fade";
 
 import HomePage from "./pages/HomePage";
 import { StateProvider } from "./store";
+import { AppRouter, useRouteMatch } from "./routing";
 
 import "./App.scss";
 const GameScreen = lazy(() => import("./pages/GameScreen"));
 const ReplayScreen = lazy(() => import("./pages/ReplayScreen"));
+
+function CurrentRoute() {
+  const route = useRouteMatch();
+  if (route.name === "replay") return <ReplayScreen />;
+  if (route.name === "game") return <GameScreen replayMode={false} />;
+  return <HomePage />;
+}
 
 function RouteLoading() {
   return (
@@ -87,22 +94,11 @@ function App() {
           TransitionComponent={Fade}
           TransitionProps={{ timeout: 100 }}
           >
-          <Router>
+          <AppRouter>
             <Suspense fallback={<RouteLoading />}>
-              <Routes>
-                <Route
-                  path="/games/:gameId/states/:stateIndex"
-                  element={<ReplayScreen />}
-                />
-                <Route path="/replays/:gameId" element={<ReplayScreen />} />
-                <Route
-                  path="/games/:gameId"
-                  element={<GameScreen replayMode={false} />}
-                />
-                <Route path="/" element={<HomePage />} />
-              </Routes>
+              <CurrentRoute />
             </Suspense>
-          </Router>
+          </AppRouter>
         </SnackbarProvider>
       </StateProvider>
     </ThemeProvider>

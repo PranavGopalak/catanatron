@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Button, CircularProgress } from "@mui/material";
 import AssessmentRoundedIcon from "@mui/icons-material/AssessmentRounded";
 import AutoGraphRoundedIcon from "@mui/icons-material/AutoGraphRounded";
-import { useParams } from "react-router";
+import { useParams } from "../routing";
 
 import {
   type MCTSProbabilities,

@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams } from "../routing";
 import { Button, CircularProgress, Divider } from "@mui/material";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";

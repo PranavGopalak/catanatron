@@ -8,7 +8,7 @@ import {
 } from "react";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import memoize from "fast-memoize";
-import { useParams } from "react-router";
+import { useParams } from "../routing";
 
 import "./Board.scss";
 import { store, type CatanState } from "../store";

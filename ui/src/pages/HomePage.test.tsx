@@ -1,9 +1,9 @@
 import { beforeEach, expect, test, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import HomePage from "./HomePage";
+import { AppRouter, useRouteMatch } from "../routing";
 import { createGame } from "../utils/apiClient";
 
 vi.mock("../utils/apiClient", async (importOriginal) => {
@@ -12,13 +12,14 @@ vi.mock("../utils/apiClient", async (importOriginal) => {
 });
 
 function renderHomePage() {
+  function TestRoute() {
+    const route = useRouteMatch();
+    return route.name === "game" ? <div>Loaded match</div> : <HomePage />;
+  }
   return render(
-    <MemoryRouter initialEntries={["/"]}>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/games/:gameId" element={<div>Loaded match</div>} />
-      </Routes>
-    </MemoryRouter>,
+    <AppRouter initialPath="/">
+      <TestRoute />
+    </AppRouter>,
   );
 }
 

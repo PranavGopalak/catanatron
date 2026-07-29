@@ -18,8 +18,7 @@ export default defineConfig({
           }
           if (
             id.includes("/react/") ||
-            id.includes("/react-dom/") ||
-            id.includes("react-router")
+            id.includes("/react-dom/")
           ) {
             return "react-vendor";
           }
@@ -30,7 +29,7 @@ export default defineConfig({
           ) {
             return "interaction-vendor";
           }
-          return "vendor";
+          return;
         },
       },
     },
