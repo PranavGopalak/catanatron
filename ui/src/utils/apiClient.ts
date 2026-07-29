@@ -25,7 +25,7 @@ export async function createGame({
   vpsToWin,
   discardLimit,
   friendlyRobber,
-}: CreateGameOptions) {
+}: CreateGameOptions): Promise<string> {
   const response = await axios.post(API_URL + "/api/games", {
     players,
     map_template: mapTemplate,

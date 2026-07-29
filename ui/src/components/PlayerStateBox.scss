@@ -1,83 +1,197 @@
 @use "../variables.scss";
 
-.resource-cards {
-  height: 40px;
-  display: flex;
-  gap: 6px;
-
-  margin-bottom: variables.$sm-gutter;
-
-  .card {
-    border-radius: 4px;
-    div {
-      background: #151313;
-      color: white;
-
-      width: 21px;
-      height: 36px;
-
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.8rem;
-      font-weight: bold;
-      position: relative;
-    }
-  }
-  .wood-cards {
-    background: variables.$wood;
-  }
-  .brick-cards {
-    background: variables.$brick;
-  }
-  .wheat-cards {
-    background: variables.$wheat;
-  }
-  .sheep-cards {
-    background: variables.$darker-sheep;
-  }
-  .ore-cards {
-    background: variables.$ore;
-  }
-  .dev-cards {
-    background: purple;
-    div {
-      font-size: 0.7rem;
-    }
-  }
-}
-
-.center-text {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  width: 25px;
-  height: 40px;
-}
-
 .player-state-box {
-  padding: variables.$sm-gutter;
+  padding: 14px;
+  border: 1px solid variables.$line;
+  border-radius: 16px;
+  background: rgb(7 17 15 / 42%);
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
 
-  max-width: variables.$sm-breakpoint;
-  margin: 0 auto;
-  width: 100%;
+.player-state-box.current {
+  border-color: color-mix(in srgb, currentColor 55%, transparent);
+  background: color-mix(in srgb, currentColor 6%, variables.$ink);
+}
 
-  .scores {
-    display: flex;
-    justify-content: space-between;
-  }
+.player-state-box.red {
+  color: variables.$red;
+}
 
-  .num-knights,
-  .num-roads,
-  .victory-points {
-    flex-direction: column;
-    width: 50px;
-    height: 40px;
-  }
+.player-state-box.blue {
+  color: variables.$blue;
+}
 
-  .bold {
-    font-weight: bold;
-  }
+.player-state-box.orange {
+  color: variables.$orange;
+}
+
+.player-state-box.white {
+  color: variables.$white;
+}
+
+.player-state-header {
+  display: grid;
+  grid-template-columns: 9px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.player-color-dot {
+  width: 8px;
+  height: 28px;
+  border-radius: 99px;
+  background: currentColor;
+}
+
+.player-state-header > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.player-state-header strong {
+  color: variables.$parchment;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+}
+
+.player-state-header small {
+  color: variables.$muted;
+  font-size: 0.67rem;
+}
+
+.turn-badge {
+  padding: 4px 7px;
+  color: currentColor;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+}
+
+.resource-cards {
+  display: flex;
+  min-width: 0;
+  gap: 6px;
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.resource-cards::-webkit-scrollbar {
+  display: none;
+}
+
+.resource-card {
+  --resource-color: #{variables.$muted};
+
+  display: grid;
+  width: 42px;
+  min-width: 42px;
+  height: 48px;
+  grid-template-rows: 1fr 1.2fr;
+  place-items: center;
+  overflow: hidden;
+  color: variables.$parchment;
+  border: 1px solid color-mix(in srgb, var(--resource-color) 38%, transparent);
+  border-radius: 10px;
+  background:
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--resource-color) 19%, transparent) 0 42%,
+      rgb(7 17 15 / 64%) 42%
+    );
+}
+
+.resource-card span {
+  align-self: center;
+  color: var(--resource-color);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.resource-card strong {
+  align-self: start;
+  font-size: 0.86rem;
+}
+
+.resource-card.wood {
+  --resource-color: #{variables.$wood};
+}
+
+.resource-card.brick {
+  --resource-color: #{variables.$brick};
+}
+
+.resource-card.sheep {
+  --resource-color: #{variables.$sheep};
+}
+
+.resource-card.wheat {
+  --resource-color: #{variables.$wheat};
+}
+
+.resource-card.ore {
+  --resource-color: #{variables.$ore};
+}
+
+.resource-card.development {
+  --resource-color: #ae83d9;
+}
+
+.card-divider {
+  width: 1px;
+  height: 38px;
+  flex: 0 0 auto;
+  background: variables.$line;
+}
+
+.resource-cards.compact {
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.resource-cards.compact .resource-card {
+  width: 36px;
+  min-width: 36px;
+  height: 40px;
+  border-radius: 8px;
+}
+
+.player-score-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.player-score-grid > span {
+  display: flex;
+  min-height: 42px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: variables.$muted;
+  border: 1px solid variables.$line;
+  border-radius: 9px;
+  background: rgb(255 255 255 / 2%);
+}
+
+.player-score-grid strong {
+  color: variables.$parchment;
+  font-size: 0.88rem;
+}
+
+.player-score-grid small {
+  font-size: 0.58rem;
+}
+
+.player-score-grid .achieved {
+  color: currentColor;
+  border-color: currentColor;
 }

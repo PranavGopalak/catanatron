@@ -1,33 +1,37 @@
-import { ArrowBackIos, ArrowForwardIos } from "@mui/icons-material";
-import { Button, Slider } from "@mui/material";
+import { useEffect, useState } from "react";
+import {
+  ArrowBackIosRounded,
+  ArrowForwardIosRounded,
+  FirstPageRounded,
+  LastPageRounded,
+} from "@mui/icons-material";
+import { Button, IconButton, Slider, Tooltip } from "@mui/material";
 
-import "./ReplayBox.scss";
-import { useState } from "react";
 import NumericTextInput from "./NumericTextInput";
+import "./ReplayBox.scss";
 
-type ReplayBoxProps = {
+export default function ReplayBox({
+  stateIndex,
+  latestStateIndex,
+  onPrevMove,
+  onNextMove,
+  onSeekMove,
+}: {
   stateIndex: number;
   latestStateIndex: number;
   onPrevMove: () => void;
   onNextMove: () => void;
   onSeekMove: (value: number) => void;
-};
+}) {
+  const [inputValue, setInputValue] = useState(String(stateIndex));
 
-export default function ReplayBox({stateIndex,
-  latestStateIndex,
-  onPrevMove,
-  onNextMove,
-  onSeekMove
-}: ReplayBoxProps ) {
-  const [inputValue, setInputValue] = useState<string>(String(stateIndex));
+  useEffect(() => {
+    setInputValue(String(stateIndex));
+  }, [stateIndex]);
 
   const commitInput = () => {
-    if (inputValue.trim() === "") {
-      setInputValue(String(stateIndex));
-      return;
-    }
     const parsed = Number(inputValue);
-    if (!Number.isFinite(parsed)) {
+    if (inputValue.trim() === "" || !Number.isFinite(parsed)) {
       setInputValue(String(stateIndex));
       return;
     }
@@ -37,50 +41,78 @@ export default function ReplayBox({stateIndex,
   };
 
   return (
-    <div className="replay-box">
-      <h3>Replay</h3>
-
-      Move: {stateIndex} / {latestStateIndex}
-
-      <Slider
-        className="move-slider"
-        min={0}
-        max={latestStateIndex}
-        step={1}
-        value={stateIndex}
-        onChange={(_, value) => onSeekMove(value as number)}
-      />
-
-      <NumericTextInput
-        label="Go to move"
-        size="small"
-        value={inputValue}
-        onChange={setInputValue}
-        onCommit={commitInput}
-      />
-
-      <div className="button-container">
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={onPrevMove}
-          startIcon={<ArrowBackIos />}
-          disabled={stateIndex === 0}
-        >
-          Prev Move
-        </Button>
-
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={onNextMove}
-          startIcon={<ArrowForwardIos />}
-          disabled={stateIndex === latestStateIndex}
-        >
-          Next Move
-        </Button>
+    <section className="replay-box" aria-labelledby="replay-title">
+      <div className="replay-heading">
+        <div>
+          <span>Timeline</span>
+          <h2 id="replay-title">Move explorer</h2>
+        </div>
+        <strong>
+          {stateIndex} <span>/ {latestStateIndex}</span>
+        </strong>
       </div>
 
-    </div>
-  )
+      <Slider
+        aria-label="Replay move"
+        className="move-slider"
+        disabled={latestStateIndex === 0}
+        max={Math.max(1, latestStateIndex)}
+        min={0}
+        onChange={(_, value) => onSeekMove(value as number)}
+        step={1}
+        value={stateIndex}
+      />
+
+      <div className="replay-jump-row">
+        <Tooltip title="First move">
+          <span>
+            <IconButton
+              aria-label="Go to first move"
+              disabled={stateIndex === 0}
+              onClick={() => onSeekMove(0)}
+            >
+              <FirstPageRounded />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <NumericTextInput
+          label="Go to move"
+          onChange={setInputValue}
+          onCommit={commitInput}
+          size="small"
+          value={inputValue}
+        />
+        <Tooltip title="Latest move">
+          <span>
+            <IconButton
+              aria-label="Go to latest move"
+              disabled={stateIndex === latestStateIndex}
+              onClick={() => onSeekMove(latestStateIndex)}
+            >
+              <LastPageRounded />
+            </IconButton>
+          </span>
+        </Tooltip>
+      </div>
+
+      <div className="replay-buttons">
+        <Button
+          disabled={stateIndex === 0}
+          onClick={onPrevMove}
+          startIcon={<ArrowBackIosRounded />}
+          variant="outlined"
+        >
+          Previous
+        </Button>
+        <Button
+          disabled={stateIndex === latestStateIndex}
+          endIcon={<ArrowForwardIosRounded />}
+          onClick={onNextMove}
+          variant="contained"
+        >
+          Next
+        </Button>
+      </div>
+    </section>
+  );
 }

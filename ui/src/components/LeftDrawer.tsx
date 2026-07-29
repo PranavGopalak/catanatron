@@ -1,104 +1,105 @@
-import React, { useCallback, useContext } from "react";
+import { useCallback, useContext } from "react";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
+import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
+import { IconButton } from "@mui/material";
 import cn from "classnames";
-import SwipeableDrawer from "@mui/material/SwipeableDrawer";
-import Divider from "@mui/material/Divider";
-import Drawer from "@mui/material/Drawer";
 
-import Hidden from "./Hidden";
 import PlayerStateBox from "./PlayerStateBox";
 import { humanizeActionRecord } from "../utils/promptUtils";
 import { store } from "../store";
 import ACTIONS from "../actions";
 import { playerKey } from "../utils/stateUtils";
-import { type GameState } from "../utils/api.types";
-import { isTabOrShift, type InteractionEvent } from "../utils/events";
-
+import type { GameState } from "../utils/api.types";
 import "./LeftDrawer.scss";
-
-function DrawerContent({ gameState }: { gameState: GameState }) {
-  const playerSections = gameState.colors.map((color) => {
-    const key = playerKey(gameState, color);
-    return (
-      <React.Fragment key={color}>
-        <PlayerStateBox
-          playerState={gameState.player_state}
-          playerKey={key}
-          color={color}
-        />
-        <Divider />
-      </React.Fragment>
-    );
-  });
-
-  return (
-    <>
-      {playerSections}
-      <div className="log">
-        {gameState.action_records
-          .slice()
-          .reverse()
-          .map((actionRecord, i) => (
-            <div
-              key={i}
-              className={cn("action foreground", actionRecord[0][0])}
-            >
-              {humanizeActionRecord(gameState, actionRecord)}
-            </div>
-          ))}
-      </div>
-    </>
-  );
-}
 
 export default function LeftDrawer() {
   const { state, dispatch } = useContext(store);
-  const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-
-  const openLeftDrawer = useCallback(
-    (event: InteractionEvent) => {
-      if (isTabOrShift(event)) {
-        return;
-      }
-
-      dispatch({ type: ACTIONS.SET_LEFT_DRAWER_OPENED, data: true });
-    },
-    [dispatch],
-  );
-  const closeLeftDrawer = useCallback(
-    (event: InteractionEvent) => {
-      if (isTabOrShift(event)) {
-        return;
-      }
-
-      dispatch({ type: ACTIONS.SET_LEFT_DRAWER_OPENED, data: false });
-    },
+  const gameState = state.gameState as GameState;
+  const close = useCallback(
+    () => dispatch({ type: ACTIONS.SET_LEFT_DRAWER_OPENED, data: false }),
     [dispatch],
   );
 
   return (
     <>
-      <Hidden breakpoint={{ size: "md", direction: "up" }} implementation="js">
-        <SwipeableDrawer
-          className="left-drawer"
-          anchor="left"
-          open={state.isLeftDrawerOpen}
-          onClose={closeLeftDrawer}
-          onOpen={openLeftDrawer}
-          disableBackdropTransition={!iOS}
-          disableDiscovery={iOS}
-          onKeyDown={closeLeftDrawer}
-        >
-          <DrawerContent gameState={state.gameState as GameState} />
-        </SwipeableDrawer>
-      </Hidden>
-      <Hidden
-        breakpoint={{ size: "sm", direction: "down" }}
-        implementation="css"
+      {state.isLeftDrawerOpen && (
+        <button
+          aria-label="Close table panel"
+          className="drawer-backdrop"
+          onClick={close}
+          type="button"
+        />
+      )}
+      <aside
+        aria-label="Players and game history"
+        className={cn("game-panel table-panel", {
+          "mobile-open": state.isLeftDrawerOpen,
+        })}
+        id="table-panel"
       >
-        <Drawer className="left-drawer" anchor="left" variant="permanent" open>
-          <DrawerContent gameState={state.gameState as GameState} />
-        </Drawer>
-      </Hidden>
+        <header className="panel-heading">
+          <div>
+            <PeopleAltRoundedIcon />
+            <span>
+              <strong>Table</strong>
+              <small>{gameState.colors.length} seated players</small>
+            </span>
+          </div>
+          <IconButton
+            aria-label="Close table panel"
+            className="panel-close"
+            onClick={close}
+            size="small"
+          >
+            <CloseRoundedIcon />
+          </IconButton>
+        </header>
+
+        <div className="player-stack">
+          {gameState.colors.map((color) => (
+            <PlayerStateBox
+              color={color}
+              isBot={gameState.bot_colors.includes(color)}
+              isCurrent={gameState.current_color === color}
+              key={color}
+              playerKey={playerKey(gameState, color)}
+              playerState={gameState.player_state}
+            />
+          ))}
+        </div>
+
+        <section className="history-section" aria-labelledby="history-title">
+          <div className="history-heading">
+            <HistoryRoundedIcon />
+            <h2 id="history-title">Move history</h2>
+            <span>{gameState.action_records.length}</span>
+          </div>
+          <div className="history-list" role="log" aria-live="polite">
+            {gameState.action_records.length === 0 ? (
+              <p className="history-empty">
+                The opening move will appear here.
+              </p>
+            ) : (
+              gameState.action_records
+                .slice()
+                .reverse()
+                .map((actionRecord, index) => (
+                  <div
+                    className={cn(
+                      "history-entry",
+                      actionRecord[0][0].toLowerCase(),
+                    )}
+                    key={`${gameState.action_records.length - index}-${actionRecord[0][1]}`}
+                  >
+                    <span>{gameState.action_records.length - index}</span>
+                    <p>{humanizeActionRecord(gameState, actionRecord)}</p>
+                  </div>
+                ))
+            )}
+          </div>
+        </section>
+      </aside>
     </>
   );
 }

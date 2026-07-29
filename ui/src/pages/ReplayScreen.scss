@@ -1,20 +1,62 @@
 @use "../variables.scss";
 
-main {
-  background: variables.$black;
-  color: white;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+.replay-control-strip {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) auto minmax(110px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  margin: 10px 14px 12px;
+  padding: 9px;
+  border: 1px solid variables.$line;
+  border-radius: 16px;
+  background: variables.$surface;
+}
 
-  .logo {
-    margin: 5px 20px 0 20px;
-    text-align: center;
+.replay-control-strip .MuiButton-root {
+  min-width: 0;
+  color: variables.$parchment;
+  border: 1px solid variables.$line;
+}
+
+.replay-control-strip .MuiButton-root svg {
+  font-size: 1rem;
+}
+
+.replay-control-strip > strong {
+  min-width: 86px;
+  color: variables.$gold;
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+.replay-control-strip > strong span {
+  color: variables.$muted;
+  font-size: 0.68rem;
+}
+
+.open-replay-insights.MuiButton-root {
+  display: none;
+  color: variables.$teal;
+}
+
+@media (max-width: 1279px) {
+  .open-replay-insights.MuiButton-root {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 620px) {
+  .replay-control-strip {
+    grid-template-columns: 1fr auto 1fr;
+    margin: 8px;
   }
 
-  .loader {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  .replay-control-strip .MuiButton-root {
+    padding: 5px;
+    font-size: 0.64rem;
+  }
+
+  .open-replay-insights.MuiButton-root {
+    grid-column: 1 / -1;
   }
 }

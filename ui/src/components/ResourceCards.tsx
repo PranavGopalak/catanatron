@@ -1,95 +1,67 @@
-import { Paper } from "@mui/material";
-import { type PlayerState } from "../utils/api.types";
-import { type Card } from "../utils/api.types";
-
-// TODO - do we need to split the SCSS for this component?
+import type { Card, PlayerState, ResourceCard } from "../utils/api.types";
 import "./PlayerStateBox.scss";
 
-export default function ResourceCards({ playerState, playerKey }: { playerState: PlayerState; playerKey: string }) {
-  const amount = (card: Card) => playerState[`${playerKey}_${card}_IN_HAND`];
+const RESOURCES: Array<{
+  card: ResourceCard;
+  label: string;
+  short: string;
+}> = [
+  { card: "WOOD", label: "Wood", short: "Wd" },
+  { card: "BRICK", label: "Brick", short: "Br" },
+  { card: "SHEEP", label: "Sheep", short: "Sh" },
+  { card: "WHEAT", label: "Wheat", short: "Wh" },
+  { card: "ORE", label: "Ore", short: "Or" },
+];
+
+const DEVELOPMENT: Array<{ card: Card; label: string; short: string }> = [
+  { card: "VICTORY_POINT", label: "Victory point", short: "VP" },
+  { card: "KNIGHT", label: "Knight", short: "Kn" },
+  { card: "MONOPOLY", label: "Monopoly", short: "Mo" },
+  { card: "YEAR_OF_PLENTY", label: "Year of Plenty", short: "YP" },
+  { card: "ROAD_BUILDING", label: "Road Building", short: "RB" },
+];
+
+export default function ResourceCards({
+  playerState,
+  playerKey,
+  compact = false,
+}: {
+  playerState: PlayerState;
+  playerKey: string;
+  compact?: boolean;
+}) {
+  const amount = (card: Card): number =>
+    Number(playerState[`${playerKey}_${card}_IN_HAND`] ?? 0);
+  const developmentCards = DEVELOPMENT.filter(({ card }) => amount(card) > 0);
+
   return (
-    <div className="resource-cards" title="Resource Cards">
-      {amount("WOOD") !== 0 && (
-        <div className="wood-cards center-text card">
-          <Paper>{amount("WOOD")}</Paper>
-        </div>
-      )}
-      {amount("BRICK") !== 0 && (
-        <div className="brick-cards center-text card">
-          <Paper>{amount("BRICK")}</Paper>
-        </div>
-      )}
-      {amount("SHEEP") !== 0 && (
-        <div className="sheep-cards center-text card">
-          <Paper>{amount("SHEEP")}</Paper>
-        </div>
-      )}
-      {amount("WHEAT") !== 0 && (
-        <div className="wheat-cards center-text card">
-          <Paper>{amount("WHEAT")}</Paper>
-        </div>
-      )}
-      {amount("ORE") !== 0 && (
-        <div className="ore-cards center-text card">
-          <Paper>{amount("ORE")}</Paper>
-        </div>
-      )}
-      <div className="separator"></div>
-      {amount("VICTORY_POINT") !== 0 && (
+    <div
+      aria-label="Resource cards"
+      className={`resource-cards ${compact ? "compact" : ""}`}
+    >
+      {RESOURCES.map(({ card, label, short }) => (
         <div
-          className="dev-cards center-text card"
-          title={amount("VICTORY_POINT") + " Victory Point Card(s)"}
+          aria-label={`${label}: ${amount(card)}`}
+          className={`resource-card ${card.toLowerCase()}`}
+          key={card}
+          title={`${label}: ${amount(card)}`}
         >
-          <Paper>
-            <span>{amount("VICTORY_POINT")}</span>
-            <span>VP</span>
-          </Paper>
+          <span>{short}</span>
+          <strong>{amount(card)}</strong>
         </div>
-      )}
-      {amount("KNIGHT") !== 0 && (
+      ))}
+      {developmentCards.length > 0 && <span className="card-divider" />}
+      {developmentCards.map(({ card, label, short }) => (
         <div
-          className="dev-cards center-text card"
-          title={amount("KNIGHT") + " Knight Card(s)"}
+          aria-label={`${label}: ${amount(card)}`}
+          className="resource-card development"
+          key={card}
+          title={`${label}: ${amount(card)}`}
         >
-          <Paper>
-            <span>{amount("KNIGHT")}</span>
-            <span>KN</span>
-          </Paper>
+          <span>{short}</span>
+          <strong>{amount(card)}</strong>
         </div>
-      )}
-      {amount("MONOPOLY") !== 0 && (
-        <div
-          className="dev-cards center-text card"
-          title={amount("MONOPOLY") + " Monopoly Card(s)"}
-        >
-          <Paper>
-            <span>{amount("MONOPOLY")}</span>
-            <span>MO</span>
-          </Paper>
-        </div>
-      )}
-      {amount("YEAR_OF_PLENTY") !== 0 && (
-        <div
-          className="dev-cards center-text card"
-          title={amount("YEAR_OF_PLENTY") + " Year of Plenty Card(s)"}
-        >
-          <Paper>
-            <span>{amount("YEAR_OF_PLENTY")}</span>
-            <span>YP</span>
-          </Paper>
-        </div>
-      )}
-      {amount("ROAD_BUILDING") !== 0 && (
-        <div
-          className="dev-cards center-text card"
-          title={amount("ROAD_BUILDING") + " Road Building Card(s)"}
-        >
-          <Paper>
-            <span>{amount("ROAD_BUILDING")}</span>
-            <span>RB</span>
-          </Paper>
-        </div>
-      )}
+      ))}
     </div>
   );
 }

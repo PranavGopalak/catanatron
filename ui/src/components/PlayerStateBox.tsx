@@ -1,44 +1,57 @@
 import cn from "classnames";
-
-import "./PlayerStateBox.scss";
-import { type Color, type PlayerState } from "../utils/api.types";
+import type { Color, PlayerState } from "../utils/api.types";
 import ResourceCards from "./ResourceCards";
+import "./PlayerStateBox.scss";
 
-export default function PlayerStateBox({ playerState, playerKey, color }: {
-  playerState: PlayerState; playerKey: string; color: Color }) {
-  const actualVps = playerState[`${playerKey}_ACTUAL_VICTORY_POINTS`];
+export default function PlayerStateBox({
+  playerState,
+  playerKey,
+  color,
+  isCurrent,
+  isBot,
+}: {
+  playerState: PlayerState;
+  playerKey: string;
+  color: Color;
+  isCurrent: boolean;
+  isBot: boolean;
+}) {
+  const value = (key: string): number =>
+    Number(playerState[`${playerKey}_${key}`] ?? 0);
+  const actualVps = value("ACTUAL_VICTORY_POINTS");
+
   return (
-    <div className={cn("player-state-box foreground", color)}>
-      <ResourceCards playerState={playerState} playerKey={playerKey} />
-      <div className="scores">
-        <div
-          className={cn("num-knights center-text", {
-            bold: playerState[`${playerKey}_HAS_ARMY`],
-          })}
-          title="Knights Played"
-        >
-          <span>{playerState[`${playerKey}_PLAYED_KNIGHT`]}</span>
-          <small>knights</small>
+    <section
+      aria-label={`${color} player${isCurrent ? ", current turn" : ""}`}
+      className={cn("player-state-box", color.toLowerCase(), {
+        current: isCurrent,
+      })}
+    >
+      <header className="player-state-header">
+        <span className="player-color-dot" aria-hidden="true" />
+        <div>
+          <strong>{color}</strong>
+          <small>{isBot ? "Automated player" : "Human player"}</small>
         </div>
-        <div
-          className={cn("num-roads center-text", {
-            bold: playerState[`${playerKey}_HAS_ROAD`],
-          })}
-          title="Longest Road"
-        >
-          {playerState[`${playerKey}_LONGEST_ROAD_LENGTH`]}
-          <small>roads</small>
-        </div>
-        <div
-          className={cn("victory-points center-text", {
-            bold: actualVps >= 10,
-          })}
-          title="Victory Points"
-        >
-          {actualVps}
-          <small>VPs</small>
-        </div>
+        {isCurrent && <span className="turn-badge">Current turn</span>}
+      </header>
+
+      <ResourceCards playerState={playerState} playerKey={playerKey} compact />
+
+      <div className="player-score-grid">
+        <span className={cn({ achieved: value("HAS_ARMY") })}>
+          <strong>{value("PLAYED_KNIGHT")}</strong>
+          <small>Knights</small>
+        </span>
+        <span className={cn({ achieved: value("HAS_ROAD") })}>
+          <strong>{value("LONGEST_ROAD_LENGTH")}</strong>
+          <small>Road</small>
+        </span>
+        <span className={cn({ achieved: actualVps >= 10 })}>
+          <strong>{actualVps}</strong>
+          <small>Points</small>
+        </span>
       </div>
-    </div>
+    </section>
   );
 }

@@ -1,5 +1,33 @@
 @use "../variables.scss";
 
+.board-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.board-container .react-transform-wrapper,
+.board-container .react-transform-component {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.board {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.board.show {
+  opacity: 1;
+}
+
 .RED {
   background: variables.$red;
 }
@@ -50,8 +78,14 @@
 }
 
 .MuiPaper-elevation3.number-token {
-  background: variables.$dark-gray;
-  color: white;
+  color: variables.$ink;
+  border: 1px solid rgb(7 17 15 / 22%);
+  background: variables.$parchment;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 28%);
+}
+
+.MuiPaper-elevation3.number-token.number-token-red {
+  color: #c83d33;
 }
 
 .MuiPaper-elevation3.robber {
@@ -67,6 +101,7 @@
   justify-content: center;
   align-items: center;
   transform: scale(1.02);
+  filter: drop-shadow(0 5px 8px rgb(0 0 0 / 22%));
 }
 
 // ===== Edges
@@ -77,7 +112,7 @@
 }
 .road {
   position: absolute;
-  border: 1px solid variables.$dark-gray;
+  border: 1px solid variables.$ink;
   width: 100%;
   height: 100%;
   border-radius: 2px;
@@ -109,7 +144,7 @@
 .settlement,
 .city {
   border-radius: 4px; // mimic Paper
-  border: 2px solid variables.$dark-gray;
+  border: 2px solid variables.$ink;
 }
 
 .BLUE.city {

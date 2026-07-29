@@ -89,7 +89,7 @@ function PlayButtons() {
       .filter((action) => action[1].startsWith("PLAY"))
       .map((action) => action[1]),
   );
-  const humanColor = getHumanColor(gameState);
+  const humanColor = getHumanColor(gameState)!;
   const discardActionType =
     gameState.current_playable_actions.find(
       (action) => action[1] === "DISCARD_RESOURCE",
@@ -396,11 +396,17 @@ export default function ActionsToolbar({
   const botsTurn = gameState.bot_colors.includes(gameState.current_color);
   const humanColor = getHumanColor(gameState);
   return (
-    <>
+    <section className="action-dock" aria-label="Turn controls">
       <div className="state-summary">
         <Hidden breakpoint={{ size: "md", direction: "up" }}>
-          <Button className="open-drawer-btn" onClick={openLeftDrawer}>
+          <Button
+            aria-controls="table-panel"
+            aria-label="Open players and history"
+            className="open-drawer-btn"
+            onClick={openLeftDrawer}
+          >
             <ChevronLeftIcon />
+            Table
           </Button>
         </Hidden>
         {humanColor && (
@@ -411,10 +417,12 @@ export default function ActionsToolbar({
         )}
         <Hidden breakpoint={{ size: "lg", direction: "up" }}>
           <Button
+            aria-controls="insights-panel"
+            aria-label="Open match insights"
             className="open-drawer-btn"
             onClick={openRightDrawer}
-            style={{ marginLeft: "auto" }}
           >
+            Insights
             <ChevronRightIcon />
           </Button>
         </Hidden>
@@ -426,27 +434,15 @@ export default function ActionsToolbar({
         {(botsTurn || gameState.winning_color) && (
           <Prompt gameState={gameState} isBotThinking={isBotThinking} />
         )}
-        {/* <Button
-          disabled={disabled}
-          className="confirm-btn"
-          variant="contained"
-          color="primary"
-          onClick={onTick}
-        >
-          Ok
-        </Button> */}
-
-        {/* <Button onClick={zoomIn}>Zoom In</Button>
-      <Button onClick={zoomOut}>Zoom Out</Button> */}
       </div>
-    </>
+    </section>
   );
 }
 
 type OptionItem = {
   label: string;
   disabled: boolean;
-  onClick: (event: MouseEvent | TouchEvent) => void;
+  onClick: () => void | Promise<void>;
 };
 
 type OptionsButtonProps = {
@@ -465,14 +461,14 @@ function OptionsButton({
   disabled,
 }: OptionsButtonProps) {
   const [open, setOpen] = useState(false);
-  const anchorRef = useRef<HTMLAnchorElement>(null);
+  const anchorRef = useRef<HTMLButtonElement>(null);
 
   const handleToggle = () => {
     setOpen((prevOpen) => !prevOpen);
   };
   const handleClose =
-    (onClick?: (event: MouseEvent | TouchEvent) => void) =>
-    (event: MouseEvent | TouchEvent) => {
+    (onClick?: () => void | Promise<void>) =>
+    (event: MouseEvent | TouchEvent | React.MouseEvent) => {
       if (
         anchorRef.current &&
         anchorRef.current.contains(event.target as Node)
@@ -480,7 +476,7 @@ function OptionsButton({
         return;
       }
 
-      onClick && onClick(event);
+      void onClick?.();
       setOpen(false);
     };
   function handleListKeyDown(event: React.KeyboardEvent) {
@@ -504,8 +500,8 @@ function OptionsButton({
       <Button
         disabled={disabled}
         ref={anchorRef}
-        href="#"
         aria-controls={open ? menuListId : undefined}
+        aria-expanded={open ? "true" : undefined}
         aria-haspopup="true"
         variant="contained"
         color="secondary"

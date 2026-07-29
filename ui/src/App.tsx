@@ -1,23 +1,76 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { SnackbarProvider } from "notistack";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-import { blue, green } from "@mui/material/colors";
+import CssBaseline from "@mui/material/CssBaseline";
 import Fade from "@mui/material/Fade";
 
-import GameScreen from "./pages/GameScreen";
 import HomePage from "./pages/HomePage";
 import { StateProvider } from "./store";
 
 import "./App.scss";
-import ReplayScreen from "./pages/ReplayScreen";
+const GameScreen = lazy(() => import("./pages/GameScreen"));
+const ReplayScreen = lazy(() => import("./pages/ReplayScreen"));
+
+function RouteLoading() {
+  return (
+    <main className="route-loading" role="status">
+      <span className="brand-glyph" aria-hidden="true">
+        C
+      </span>
+      <strong>Loading the strategy lab…</strong>
+    </main>
+  );
+}
 
 const theme = createTheme({
   palette: {
+    mode: "dark",
     primary: {
-      main: blue[900],
+      main: "#f0b84b",
+      contrastText: "#07110f",
     },
     secondary: {
-      main: green[900],
+      main: "#4ec7b1",
+      contrastText: "#07110f",
+    },
+    background: {
+      default: "#07110f",
+      paper: "#192923",
+    },
+    text: {
+      primary: "#f5ead6",
+      secondary: "#9caaa4",
+    },
+    error: { main: "#f06558" },
+  },
+  typography: {
+    fontFamily:
+      '"DM Sans", Inter, ui-sans-serif, system-ui, -apple-system, sans-serif',
+    button: {
+      fontWeight: 700,
+      letterSpacing: "0.04em",
+    },
+  },
+  shape: {
+    borderRadius: 14,
+  },
+  components: {
+    MuiButton: {
+      defaultProps: { disableElevation: true },
+      styleOverrides: {
+        root: {
+          textTransform: "none",
+          minHeight: 44,
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: "none",
+        },
+      },
     },
   },
 });
@@ -25,6 +78,7 @@ const theme = createTheme({
 function App() {
   return (
     <ThemeProvider theme={theme}>
+      <CssBaseline />
       <StateProvider>
         <SnackbarProvider
           classes={{ containerRoot: "snackbar-container" }}
@@ -32,20 +86,22 @@ function App() {
           autoHideDuration={1000}
           TransitionComponent={Fade}
           TransitionProps={{ timeout: 100 }}
-        >
+          >
           <Router>
-            <Routes>
-              <Route
-                path="/games/:gameId/states/:stateIndex"
-                element={<GameScreen replayMode={true} />}
-              />
-              <Route path="/replays/:gameId" element={<ReplayScreen />} />
-              <Route
-                path="/games/:gameId"
-                element={<GameScreen replayMode={false} />}
-              />
-              <Route path="/" element={<HomePage />} />
-            </Routes>
+            <Suspense fallback={<RouteLoading />}>
+              <Routes>
+                <Route
+                  path="/games/:gameId/states/:stateIndex"
+                  element={<ReplayScreen />}
+                />
+                <Route path="/replays/:gameId" element={<ReplayScreen />} />
+                <Route
+                  path="/games/:gameId"
+                  element={<GameScreen replayMode={false} />}
+                />
+                <Route path="/" element={<HomePage />} />
+              </Routes>
+            </Suspense>
           </Router>
         </SnackbarProvider>
       </StateProvider>

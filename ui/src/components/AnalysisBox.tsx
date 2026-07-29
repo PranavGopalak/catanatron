@@ -1,86 +1,104 @@
-import { useContext, useState } from "react";
-import { CircularProgress, Button } from "@mui/material";
-import AssessmentIcon from "@mui/icons-material/Assessment";
-import { type MCTSProbabilities, type StateIndex, getMctsAnalysis } from "../utils/apiClient";
+import { useContext, useEffect, useState } from "react";
+import { Button, CircularProgress } from "@mui/material";
+import AssessmentRoundedIcon from "@mui/icons-material/AssessmentRounded";
+import AutoGraphRoundedIcon from "@mui/icons-material/AutoGraphRounded";
 import { useParams } from "react-router";
 
-import "./AnalysisBox.scss";
+import {
+  type MCTSProbabilities,
+  type StateIndex,
+  getMctsAnalysis,
+} from "../utils/apiClient";
 import { store } from "../store";
+import "./AnalysisBox.scss";
 
-type AnalysisBoxProps = {
-    stateIndex: StateIndex;
-}
-
-export default function AnalysisBox( { stateIndex }: AnalysisBoxProps ) {
+export default function AnalysisBox({ stateIndex }: { stateIndex: StateIndex }) {
   const { gameId } = useParams();
   const { state } = useContext(store);
-  const [mctsResults, setMctsResults] = useState<MCTSProbabilities | undefined>(undefined);
+  const [results, setResults] = useState<MCTSProbabilities>();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
-  const handleAnalyzeClick = async () => {
+  useEffect(() => {
+    setResults(undefined);
+    setError("");
+  }, [stateIndex, state.gameState?.state_index]);
+
+  const analyze = async () => {
     if (!gameId || !state.gameState || state.gameState.winning_color) return;
-
+    setLoading(true);
+    setError("");
     try {
-      setLoading(true);
-      setError('');
       const result = await getMctsAnalysis(gameId, stateIndex);
-      if (result.success) {
-        setMctsResults(result.probabilities);
-      } else {
-        setError(result.error || "Analysis failed");
-      }
-    } catch (err) {
-      console.error("MCTS Analysis failed:", err);
-      if (err instanceof Error) {
-        setError(err.message);
-      } else if (typeof err === "string") {
-        setError(err);
-      } else {
-        setError("An unknown error occurred");
-      }
+      if (!result.success) throw new Error("Analysis failed");
+      setResults(result.probabilities);
+    } catch {
+      setError(
+        "The strategy analysis could not finish. The position may be too expensive to evaluate right now.",
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="analysis-box">
-      <div className="analysis-header">
-        <h3>Win Probability Analysis</h3>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleAnalyzeClick}
-          disabled={loading || !!state.gameState?.winning_color}
-          startIcon={loading ? <CircularProgress size={20} /> : <AssessmentIcon />}
-        >
-          {loading ? "Analyzing..." : "Analyze"}
-        </Button>
+    <section className="analysis-box" aria-labelledby="analysis-title">
+      <div className="analysis-kicker">
+        <AutoGraphRoundedIcon />
+        Strategy lens
       </div>
+      <h2 id="analysis-title">Win forecast</h2>
+      <p>
+        Run 100 Monte Carlo simulations from this exact board position.
+      </p>
+      <Button
+        disabled={loading || !!state.gameState?.winning_color}
+        fullWidth
+        onClick={analyze}
+        startIcon={
+          loading ? (
+            <CircularProgress color="inherit" size={18} />
+          ) : (
+            <AssessmentRoundedIcon />
+          )
+        }
+        variant="contained"
+      >
+        {loading ? "Exploring futures…" : results ? "Run again" : "Analyze position"}
+      </Button>
 
       {error && (
-        <div className="error-message">
+        <div className="analysis-error" role="alert">
           {error}
         </div>
       )}
 
-      {mctsResults && !loading && !error && (
-        <div className="probability-bars">
-          {Object.entries(mctsResults).map(([color, probability]) => (
-            <div key={color} className={`probability-row ${color.toLowerCase()}`}>
-              <span className="player-color">{color}</span>
-              <span className="probability-bar">
-                <div
-                  className="bar-fill"
-                  style={{ width: `${probability}%` }}
-                />
+      {results && !loading && !error && (
+        <div className="probability-bars" aria-label="Win probabilities">
+          {Object.entries(results).map(([color, probability]) => (
+            <div
+              className={`probability-row ${color.toLowerCase()}`}
+              key={color}
+            >
+              <span className="probability-label">
+                <i />
+                {color}
               </span>
-              <span className="probability-value">{probability}%</span>
+              <span
+                aria-label={`${color}: ${probability}%`}
+                className="probability-track"
+                role="meter"
+                aria-valuemax={100}
+                aria-valuemin={0}
+                aria-valuenow={probability}
+              >
+                <i style={{ width: `${Math.max(0, Math.min(100, probability))}%` }} />
+              </span>
+              <strong>{probability}%</strong>
             </div>
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }

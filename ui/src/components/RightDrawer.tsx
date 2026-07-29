@@ -1,70 +1,56 @@
 import { useCallback, useContext, type PropsWithChildren } from "react";
-import SwipeableDrawer from "@mui/material/SwipeableDrawer";
-import Drawer from "@mui/material/Drawer";
-import { isTabOrShift, type InteractionEvent } from "../utils/events";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
+import { IconButton } from "@mui/material";
+import cn from "classnames";
 
-import Hidden from "./Hidden";
 import { store } from "../store";
 import ACTIONS from "../actions";
-
 import "./RightDrawer.scss";
 
-export default function RightDrawer( { children }: PropsWithChildren ) {
+export default function RightDrawer({ children }: PropsWithChildren) {
   const { state, dispatch } = useContext(store);
-  const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-
-  const openRightDrawer = useCallback(
-    (event: InteractionEvent) => {
-      if (isTabOrShift(event)) {
-        return;
-      }
-
-      dispatch({ type: ACTIONS.SET_RIGHT_DRAWER_OPENED, data: true });
-    },
-    [dispatch]
-  );
-
-  const closeRightDrawer = useCallback(
-    (event: InteractionEvent) => {
-      if (isTabOrShift(event)) {
-        return;
-      }
-
-      dispatch({ type: ACTIONS.SET_RIGHT_DRAWER_OPENED, data: false });
-    },
-    [dispatch]
+  const close = useCallback(
+    () => dispatch({ type: ACTIONS.SET_RIGHT_DRAWER_OPENED, data: false }),
+    [dispatch],
   );
 
   return (
     <>
-      <Hidden breakpoint={{ size: "lg", direction: "up" }} implementation="js">
-        <SwipeableDrawer
-          className="right-drawer"
-          anchor="right"
-          open={state.isRightDrawerOpen}
-          onClose={closeRightDrawer}
-          onOpen={openRightDrawer}
-          disableBackdropTransition={!iOS}
-          disableDiscovery={iOS}
-          onKeyDown={closeRightDrawer}
-        >
-          <div className="drawer-content">
-            {children}
+      {state.isRightDrawerOpen && (
+        <button
+          aria-label="Close insights panel"
+          className="drawer-backdrop insights-backdrop"
+          onClick={close}
+          type="button"
+        />
+      )}
+      <aside
+        aria-label="Match insights"
+        className={cn("game-panel insights-panel", {
+          "mobile-open": state.isRightDrawerOpen,
+        })}
+        id="insights-panel"
+      >
+        <header className="panel-heading">
+          <div>
+            <InsightsRoundedIcon />
+            <span>
+              <strong>Insights</strong>
+              <small>Analysis and replay tools</small>
+            </span>
           </div>
-        </SwipeableDrawer>
-      </Hidden>
-      <Hidden breakpoint={{ size: "md", direction: "down" }} implementation="css">
-        <Drawer
-          className="right-drawer"
-          anchor="right"
-          variant="permanent"
-          open
-        >
-          <div className="drawer-content">
-            {children}
-          </div>
-        </Drawer>
-      </Hidden>
+          <IconButton
+            aria-label="Close insights panel"
+            className="panel-close"
+            onClick={close}
+            size="small"
+          >
+            <CloseRoundedIcon />
+          </IconButton>
+        </header>
+        <div className="drawer-content">{children}</div>
+      </aside>
     </>
   );
 }

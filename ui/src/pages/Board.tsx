@@ -40,7 +40,6 @@ type BoardProps = {
   edgeActions?: Record<EdgeId, GameAction>;
   replayMode: boolean;
   gameState: GameState;
-  isMobile: boolean;
   show: boolean;
   isMovingRobber: boolean;
   robberCoordinates?: Set<string>;
@@ -56,14 +55,12 @@ export default function Board({
   edgeActions,
   replayMode,
   gameState,
-  isMobile,
   show,
   isMovingRobber,
   robberCoordinates,
 }: BoardProps) {
-  // TODO: Keep in sync with CSS
-  const containerHeight = height - 144 - 38 - 40;
-  const containerWidth = isMobile ? width - 280 : width;
+  const containerHeight = Math.max(0, height - 24);
+  const containerWidth = Math.max(0, width - 24);
   const center: [number, number] = [containerWidth / 2, containerHeight / 2];
   const size = computeDefaultSize(containerWidth, containerHeight);
   if (!size) {

@@ -10,11 +10,15 @@ export function isPlayersTurn(gameState: GameState): boolean {
 }
 
 export function playerKey(gameState: GameState, color: Color): string {
-  return `P${gameState.colors.indexOf(color)}`;
+  const index = gameState.colors.indexOf(color);
+  if (index === -1) {
+    throw new Error(`Color ${color} is not seated in this game`);
+  }
+  return `P${index}`;
 }
 
-export function getHumanColor(gameState: GameState): Color {
+export function getHumanColor(gameState: GameState): Color | undefined {
   return gameState.colors.find(
     (color) => !gameState.bot_colors.includes(color)
-  ) as Color;
+  );
 }
