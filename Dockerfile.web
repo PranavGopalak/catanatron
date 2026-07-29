@@ -11,9 +11,6 @@ RUN pip install -e .[web]
 
 EXPOSE 5001
 
-ENV FLASK_DEBUG=1
-ENV FLASK_APP=catanatron.web/catanatron.web
-ENV FLASK_RUN_HOST=0.0.0.0
-ENV FLASK_RUN_PORT=5001
+ENV PYTHONUNBUFFERED=1
 
-CMD flask run
+CMD ["gunicorn", "--bind", "0.0.0.0:5001", "--workers", "2", "--threads", "4", "--timeout", "120", "catanatron.web:create_app()"]
