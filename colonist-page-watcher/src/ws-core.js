@@ -1,5 +1,7 @@
 (function (root, factory) {
-  root.ColonistWatcherWsCore = factory();
+  const api = factory();
+  root.ColonistWatcherWsCore = api;
+  if (typeof module === "object" && module.exports) module.exports = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   const CARD_LABELS = {
     0: "hidden_resource_card",
@@ -577,5 +579,14 @@ function addCounts(player, counts, multiplier) {
     return analyzeDecodedFrames(decodeFrames(frames), options);
   }
 
-  return { analyzeFrames, analyzeDecodedFrames, cardLabel, cardsToCounts, playerColorLabel: (color) => PLAYER_COLORS[color] || `Color ${color}` };
+  return {
+    analyzeFrames,
+    analyzeDecodedFrames,
+    buildTracker,
+    cardLabel,
+    cardsToCounts,
+    decodeFrame,
+    decodeFrames,
+    playerColorLabel: (color) => PLAYER_COLORS[color] || `Color ${color}`,
+  };
 });
