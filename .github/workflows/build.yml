@@ -5,7 +5,7 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex-dev]
   pull_request:
     branches: [main, staging]
 
@@ -91,3 +91,25 @@ jobs:
         working-directory: ./ui
       - run: npm run build
         working-directory: ./ui
+      - run: npm test -- --run
+        working-directory: ./ui
+
+  validate-firefox-extension:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate extension source and protocol tracker
+        run: |
+          node scripts/core-smoke-test.cjs
+          node scripts/manifest-smoke-test.cjs
+          node scripts/background-smoke-test.cjs
+          node scripts/dashboard-smoke-test.cjs
+          node scripts/dashboard-render-smoke-test.cjs
+          node scripts/ws-state-smoke-test.cjs
+          node scripts/hidden-inference-smoke-test.cjs
+          node scripts/analyze-logs.cjs scripts/sample-export.json
+        working-directory: ./colonist-page-watcher
