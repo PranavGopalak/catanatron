@@ -82,7 +82,7 @@ function runPopup(payload) {
       onChanged: { addListener() {} },
     },
     tabs: { created: [], query: async () => [], sendMessage() {}, create: async (tab) => { chrome.tabs.created.push(tab); return { id: 99, ...tab }; } },
-    runtime: { getURL: (path) => "moz-extension://test/" + path, getManifest: () => ({ version: "0.1.8" }) },
+    runtime: { getURL: (path) => "moz-extension://test/" + path, getManifest: () => ({ version: "0.1.9" }) },
     downloads: { download() {} },
   };
 
@@ -137,7 +137,7 @@ function main() {
   const calibrationChips = elements.get("calibrationHand").children.map((chip) => chip.innerHTML);
   const calibrationDeltaChips = elements.get("calibrationDelta").children.map((chip) => chip.innerHTML);
 
-  assert.strictEqual(elements.get("popupVersion").textContent, "v0.1.8");
+  assert.strictEqual(elements.get("popupVersion").textContent, "v0.1.9");
   assert.match(status, /ws frames/);
   assert.match(status, /parsed events/);
   assert.match(trackerStatus, /WebSocket:/);

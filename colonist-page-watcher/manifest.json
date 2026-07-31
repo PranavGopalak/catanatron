@@ -1,7 +1,7 @@
 {
     "manifest_version":  3,
     "name":  "Colonist Page Watcher",
-    "version":  "0.1.8",
+    "version":  "0.1.9",
     "description":  "Tracks Colonist game events and cards locally in an automatic Firefox extension dashboard.",
     "permissions":  [
                         "storage",

@@ -105,7 +105,7 @@ async function main() {
     document,
     location: { protocol: "moz-extension:" },
     chrome: {
-      runtime: { getManifest: () => ({ version: "0.1.8" }) },
+      runtime: { getManifest: () => ({ version: "0.1.9" }) },
       storage: {
         local: {
           get(defaults, callback) { callback({ ...defaults, ...storageState }); },
@@ -219,8 +219,8 @@ async function main() {
   assert.match(devDeckHtml, /Road Building/);
   assert(elements.get("devDeckMeta").textContent.includes("3 bought / 3 played"));
   assert.match(elements.get("stateReset").textContent, /^Auto /);
-  assert.strictEqual(elements.get("stateVersion").textContent, "v0.1.8");
-  assert.strictEqual(elements.get("headerVersion").textContent, "v0.1.8");
+  assert.strictEqual(elements.get("stateVersion").textContent, "v0.1.9");
+  assert.strictEqual(elements.get("headerVersion").textContent, "v0.1.9");
   assert.match(elements.get("tradeVerdictTitle").textContent, /WIN RISK|SAFE|HIDDEN VP RISK|UNKNOWN/);
   assert(elements.get("players").children.length >= 3, "expected player cards to render");
   assert(elements.get("events").children.length > 0, "expected recent events to render");

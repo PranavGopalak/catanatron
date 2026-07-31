@@ -128,7 +128,7 @@ function hasSigningAndPrivacyNotes() {
   assert(privacy.includes('Normal use does not send data to a remote server, localhost process, native host, analytics service, or third party.'), 'privacy note should state local-only behavior');
   assert(amoNotes.includes('unlisted/self-distributed') && amoNotes.includes('Suggested Reviewer Notes'), 'AMO notes should support signing submission');
   assert(readme.includes('FIREFOX-INSTALL-CHECKLIST.md') && amoNotes.includes('FIREFOX-INSTALL-CHECKLIST.md'), 'README and AMO notes should link install checklist');
-  assert(firefoxChecklist.includes('Permanent Firefox Verification') && firefoxChecklist.includes('Version v0.1.8') && firefoxChecklist.includes('No local server'), 'install checklist should cover restart verification and normal no-command use');
+  assert(firefoxChecklist.includes('Permanent Firefox Verification') && firefoxChecklist.includes(`Version v${manifest.version}`) && firefoxChecklist.includes('No local server'), 'install checklist should cover restart verification and normal no-command use');
   assert(firefoxChecklist.includes('scripts\\build-release.ps1') && readme.includes('scripts\\build-release.ps1'), 'release docs should point to the one-command release builder');
 }
 

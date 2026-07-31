@@ -4,7 +4,7 @@ Use this when submitting the unsigned XPI for Mozilla signing as an unlisted/sel
 
 ## Built Package
 
-`dist/colonist-page-watcher-0.1.8.xpi`
+`dist/colonist-page-watcher-0.1.9.xpi`
 
 ## Suggested Summary
 

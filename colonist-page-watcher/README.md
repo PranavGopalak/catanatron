@@ -143,10 +143,9 @@ powershell -ExecutionPolicy Bypass -File scripts\build-release.ps1
 The script validates the extension, builds the unsigned XPI, builds the AMO source ZIP, writes SHA-256 metadata, and verifies the metadata. The unsigned package is written to:
 
 ```text
-dist\colonist-page-watcher-0.1.8.xpi
+dist\colonist-page-watcher-0.1.9.xpi
 ```
 
 The resulting `dist\release-metadata.json` records file sizes and SHA-256 hashes for the XPI and AMO source ZIP so you can verify which build was submitted or installed.
 
 Submit that XPI at Mozilla Add-ons Developer Hub for signing. After Mozilla signs it, install the signed XPI in Firefox and it will persist across browser restarts. No localhost dashboard server or native host is needed for normal use. See `AMO-SUBMISSION.md` and `PRIVACY.md` for copy-ready signing notes.
-

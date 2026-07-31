@@ -9,14 +9,18 @@
   <body>
     <main class="app">
       <header class="topbar">
-        <div>
-          <h1>Colonist Watcher</h1>
-          <p id="status">Waiting for page events</p>
+        <div class="brand-lockup">
+          <span class="brand-mark" aria-hidden="true">C</span>
+          <div>
+            <span class="eyebrow">Live game companion</span>
+            <h1>Colonist Watcher</h1>
+            <p id="status">Waiting for page events</p>
+          </div>
         </div>
         <div class="topbar-actions">
           <span id="popupVersion" class="version-badge">v0.0.0</span>
-          <button id="openDashboard" class="primary-action" type="button">Dashboard</button>
-          <button id="scan" class="secondary-action" type="button" title="Scan the active Colonist tab">Scan</button>
+          <button id="openDashboard" class="primary-action" type="button">Open dashboard</button>
+          <button id="scan" class="secondary-action" type="button" title="Scan the active Colonist tab">Rescan tab</button>
         </div>
       </header>
 
@@ -28,7 +32,7 @@
       </section>
 
       <section class="identity" aria-label="Player identity">
-        <label for="localPlayerName">Your Colonist name</label>
+        <label for="localPlayerName"><span>Player identity</span>Your Colonist name</label>
         <input id="localPlayerName" type="text" autocomplete="off" spellcheck="false" />
       </section>
 
@@ -74,7 +78,7 @@
           <option value="development_card_played">Dev cards played</option>
           <option value="unknown">Unknown</option>
         </select>
-        <button id="newGame" type="button">Reset Game</button>
+        <button id="newGame" type="button">Reset session</button>
       </section>
       <p id="captureHealth" class="capture-health">No capture session yet.</p>
 

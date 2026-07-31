@@ -59,7 +59,7 @@ assert(css.includes('.state-strip'), 'dashboard should style live state strip');
 assert(buildScript.includes('Join-Path $Root "dashboard"'), 'XPI build must include dashboard files');
 assert(buildScript.includes('Join-Path $Root "assets"'), 'XPI build must include icon assets');
 
-const xpi = path.join(root, 'dist', 'colonist-page-watcher-0.1.8.xpi');
+const xpi = path.join(root, 'dist', `colonist-page-watcher-${manifest.version}.xpi`);
 if (fs.existsSync(xpi)) {
   const bytes = fs.readFileSync(xpi);
   const text = bytes.toString('latin1');

@@ -1,5 +1,5 @@
 param(
-  [string]$Version = "0.1.8"
+  [string]$Version = "0.1.9"
 )
 
 $ErrorActionPreference = "Stop"
@@ -29,4 +29,3 @@ try {
 }
 Move-Item -LiteralPath $Zip -Destination $Xpi
 Get-Item -LiteralPath $Xpi
-

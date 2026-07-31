@@ -4,8 +4,8 @@ Use this checklist for the permanent Firefox Release install path. Normal gamepl
 
 ## Files To Use
 
-- Unsigned XPI for Mozilla signing: `dist/colonist-page-watcher-0.1.8.xpi`
-- Source package for Mozilla review: `dist/colonist-page-watcher-source-0.1.8.zip`
+- Unsigned XPI for Mozilla signing: `dist/colonist-page-watcher-0.1.9.xpi`
+- Source package for Mozilla review: `dist/colonist-page-watcher-source-0.1.9.zip`
 - Build identity and SHA-256 hashes: `dist/release-metadata.json`
 
 ## Before Submission
@@ -29,7 +29,7 @@ The release script validates the extension, builds the unsigned XPI, builds the 
 3. Open `about:addons` and confirm **Colonist Page Watcher** is still installed and enabled.
 4. Open `https://colonist.io/` and start or join a game.
 5. Confirm the dashboard opens automatically after WebSocket game activity starts.
-6. Confirm the dashboard state strip shows `Version v0.1.8`, `Live`, and an automatic session reset.
+6. Confirm the dashboard state strip shows `Version v0.1.9`, `Live`, and an automatic session reset.
 7. Close or navigate away from all Colonist tabs and confirm the dashboard closes shortly after.
 
 ## Expected Normal Use
