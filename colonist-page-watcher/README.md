@@ -26,14 +26,16 @@ Use this only while developing or before the XPI is signed:
 
 Temporary add-ons are removed when Firefox closes. That is a Firefox limitation, not a tracker setting.
 
-## Chrome development testing
+## Chrome use
 
-Chrome is supported for quick local testing only:
+The Chrome build uses Manifest V3 with a service worker and is packaged separately from Firefox. After installing it, open the popup, review the local-data disclosure, choose **Enable tracking**, and refresh any Colonist tab that was already open.
+
+For local development testing:
 
 1. Open `chrome://extensions`.
 2. Enable **Developer mode**.
 3. Select **Load unpacked**.
-4. Choose `catanatron/colonist-page-watcher`.
+4. Choose a folder containing the Chrome package contents, with `manifest.chrome.json` copied to `manifest.json`, or extract `dist/colonist-page-watcher-chrome-0.1.9.zip`.
 5. Refresh any already-open Colonist tab.
 
 ## Capture workflow
@@ -106,7 +108,7 @@ For a release/signing package, use the one-command release builder instead:
 powershell -ExecutionPolicy Bypass -File scripts\build-release.ps1
 ```
 
-That command validates the extension, proves background auto-open behavior, builds the unsigned XPI and source ZIP, writes SHA-256 metadata, and verifies the metadata.
+That command validates both browser targets, proves background auto-open behavior, builds the unsigned Firefox XPI, AMO source ZIP, and Chrome Web Store ZIP, writes SHA-256 metadata, and verifies the metadata.
 
 ## Pattern candidates
 
@@ -146,6 +148,17 @@ The script validates the extension, builds the unsigned XPI, builds the AMO sour
 dist\colonist-page-watcher-0.1.9.xpi
 ```
 
-The resulting `dist\release-metadata.json` records file sizes and SHA-256 hashes for the XPI and AMO source ZIP so you can verify which build was submitted or installed.
+The resulting `dist\release-metadata.json` records file sizes and SHA-256 hashes for the Firefox XPI, AMO source ZIP, and Chrome Web Store ZIP so you can verify which build was submitted or installed.
 
 Submit that XPI at Mozilla Add-ons Developer Hub for signing. After Mozilla signs it, install the signed XPI in Firefox and it will persist across browser restarts. No localhost dashboard server or native host is needed for normal use. See `AMO-SUBMISSION.md` and `PRIVACY.md` for copy-ready signing notes.
+
+## Chrome Web Store package
+
+Build and validate the store-ready Chrome package with:
+
+```powershell
+node scripts\build-chrome-zip.cjs
+node scripts\validate-all.cjs
+```
+
+Upload `dist\colonist-page-watcher-chrome-0.1.9.zip` to the Chrome Web Store. The ZIP has `manifest.json` at its root, uses `background.service_worker`, omits Firefox-only Gecko settings, and includes the required 128px icon. See `CHROME-WEB-STORE.md` and `PRIVACY.md` for the copy-ready listing, permission justifications, disclosure, and reviewer flow.

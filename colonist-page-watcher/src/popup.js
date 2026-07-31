@@ -15,6 +15,8 @@ const patternCandidates = document.getElementById("patternCandidates");
 const captureHealth = document.getElementById("captureHealth");
 const localPlayerNameInput = document.getElementById("localPlayerName");
 const popupVersion = document.getElementById("popupVersion");
+const trackingConsentButton = document.getElementById("trackingConsent");
+const consentStatus = document.getElementById("consentStatus");
 popupVersion.textContent = `v${chrome.runtime.getManifest().version}`;
 const calibrationStatus = document.getElementById("calibrationStatus");
 const calibrationHand = document.getElementById("calibrationHand");
@@ -785,6 +787,7 @@ function render(storedEvents, rawLogs, allRawLogs = [], webSocketFrames = []) {
 function loadData() {
   chrome.storage.local.get(
     {
+      colonistWatcherTrackingEnabled: false,
       colonistAllRawLogs: [],
       colonistEvents: [],
       colonistRawLogs: [],
@@ -803,6 +806,7 @@ function loadData() {
       colonistWatcherResourceMap: latestResourceMap,
     },
     ({
+      colonistWatcherTrackingEnabled,
       colonistAllRawLogs,
       colonistEvents,
       colonistRawLogs,
@@ -818,6 +822,7 @@ function loadData() {
       colonistWatcherLocalPlayerName,
       colonistWatcherResourceMap,
     }) => {
+      renderTrackingConsent(colonistWatcherTrackingEnabled === true);
       latestLocalPlayerName = colonistWatcherLocalPlayerName || "KabaliKhan";
       latestResourceMap = { ...DEFAULT_RESOURCE_MAP };
       latestSession = {
@@ -834,6 +839,19 @@ function loadData() {
     }
   );
 }
+
+function renderTrackingConsent(enabled) {
+  trackingConsentButton.dataset.enabled = String(enabled);
+  trackingConsentButton.textContent = enabled ? "Disable tracking" : "Enable tracking";
+  consentStatus.textContent = enabled
+    ? "Tracking is enabled. Refresh any Colonist tab that was already open."
+    : "Tracking is off. Enable it, then refresh your Colonist game tab.";
+}
+
+trackingConsentButton.addEventListener("click", () => {
+  const enabled = trackingConsentButton.dataset.enabled !== "true";
+  chrome.storage.local.set({ colonistWatcherTrackingEnabled: enabled }, () => renderTrackingConsent(enabled));
+});
 
 newGameButton.addEventListener("click", () => {
   const resetAt = new Date().toISOString();

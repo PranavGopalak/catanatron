@@ -10,7 +10,7 @@ if (!fs.existsSync(metadataPath)) throw new Error("release-metadata.json is miss
 
 const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
 if (metadata.version !== manifest.version) throw new Error(`metadata version ${metadata.version} does not match manifest ${manifest.version}`);
-if (!Array.isArray(metadata.artifacts) || metadata.artifacts.length < 2) throw new Error("metadata must list XPI and source ZIP artifacts");
+if (!Array.isArray(metadata.artifacts) || metadata.artifacts.length < 3) throw new Error("metadata must list Firefox, source, and Chrome artifacts");
 
 for (const artifact of metadata.artifacts) {
   const filePath = path.join(root, "dist", artifact.file || "");
@@ -24,5 +24,6 @@ for (const artifact of metadata.artifacts) {
 const files = metadata.artifacts.map((artifact) => artifact.file).sort();
 if (!files.includes(`colonist-page-watcher-${manifest.version}.xpi`)) throw new Error("metadata must include XPI");
 if (!files.includes(`colonist-page-watcher-source-${manifest.version}.zip`)) throw new Error("metadata must include AMO source ZIP");
+if (!files.includes(`colonist-page-watcher-chrome-${manifest.version}.zip`)) throw new Error("metadata must include Chrome Web Store ZIP");
 
 console.log("release metadata smoke test ok");

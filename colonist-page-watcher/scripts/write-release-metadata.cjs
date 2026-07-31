@@ -9,6 +9,7 @@ const dist = path.join(root, "dist");
 const artifacts = [
   `colonist-page-watcher-${manifest.version}.xpi`,
   `colonist-page-watcher-source-${manifest.version}.zip`,
+  `colonist-page-watcher-chrome-${manifest.version}.zip`,
 ];
 
 function fileRecord(fileName) {
@@ -27,7 +28,7 @@ const metadata = {
   version: manifest.version,
   generatedAt: new Date().toISOString(),
   artifacts: artifacts.map(fileRecord),
-  notes: "Install the Mozilla-signed XPI in Firefox Release for persistent add-on use.",
+  notes: "Use the signed XPI for Firefox or the Chrome ZIP for Chrome Web Store submission.",
 };
 
 fs.writeFileSync(path.join(dist, "release-metadata.json"), JSON.stringify(metadata, null, 2) + "\n");

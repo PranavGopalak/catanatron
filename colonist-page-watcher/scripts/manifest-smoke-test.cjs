@@ -19,6 +19,7 @@ assert(!manifest.host_permissions.some((permission) => permission.startsWith("ht
 assert(manifest.background?.scripts?.includes("src/background.js"), "Firefox background script is required for auto-open dashboard");
 assert.strictEqual(manifest.action.default_popup, "src/popup.html");
 assert.strictEqual(manifest.icons?.["48"], "assets/icon-48.png", "extension should define branded icons");
+assert.strictEqual(manifest.icons?.["128"], "assets/icon-128.png", "extension should define a Chrome Web Store icon");
 assert.strictEqual(manifest.action.default_icon?.["32"], "assets/icon-32.png", "browser action should define an icon");
 assert(manifest.browser_specific_settings?.gecko?.id, "Firefox gecko id is required for local storage continuity");
 assert(manifest.browser_specific_settings?.gecko?.strict_min_version, "Firefox strict_min_version should be explicit");
@@ -44,4 +45,3 @@ assert(resources?.matches?.includes("https://colonist.io/*"), "hook resource mus
 assert(resources?.matches?.includes("https://*.colonist.io/*"), "hook resource must match colonist subdomains");
 
 console.log("manifest smoke test ok");
-

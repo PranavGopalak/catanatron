@@ -31,6 +31,8 @@ let sessionId = null;
 let lastDashboardStreamAt = 0;
 let lastGameStartResetAt = 0;
 let autoResetInFlight = false;
+let trackingEnabled = false;
+let watcherStarted = false;
 
 function getCore() {
   return globalThis.ColonistWatcherCore || {
@@ -384,6 +386,7 @@ function enqueueWebSocketFrame(frame) {
 }
 
 function rememberWebSocketFrame(frame) {
+  if (!trackingEnabled) return;
   const preview = {
     id: "preview",
     sessionId: getSessionId(),
@@ -431,6 +434,7 @@ function scanContainer(container, source) {
 }
 
 function scanVisibleText() {
+  if (!trackingEnabled) return;
   const containers = findCandidateContainers();
   for (const container of containers) {
     scanContainer(container, "container");
@@ -600,6 +604,8 @@ function startDomWatcher() {
 }
 
 function startWatching() {
+  if (!trackingEnabled || watcherStarted) return;
+  watcherStarted = true;
   notifyDashboardActive("colonist-page");
   injectWebSocketHook();
 
@@ -624,6 +630,7 @@ function startWatching() {
 
 window.addEventListener("message", (event) => {
   if (event.source !== window || event.data?.source !== "COLONIST_WATCHER_WS") return;
+  if (!trackingEnabled) return;
   rememberWebSocketFrame(event.data.frame || {});
 });
 
@@ -636,7 +643,13 @@ function injectWebSocketHook() {
 }
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName !== "local" || !changes.colonistWatcherSessionId?.newValue) return;
+  if (areaName !== "local") return;
+  if (changes.colonistWatcherTrackingEnabled) {
+    trackingEnabled = changes.colonistWatcherTrackingEnabled.newValue === true;
+    if (trackingEnabled) startWatching();
+    else clearRuntimeQueues();
+  }
+  if (!changes.colonistWatcherSessionId?.newValue) return;
   const nextSessionId = changes.colonistWatcherSessionId.newValue;
   if (nextSessionId === sessionId) return;
   window.clearTimeout(flushTimer);
@@ -650,6 +663,10 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 });
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "COLONIST_WATCHER_SCAN") {
+    if (!trackingEnabled) {
+      sendResponse({ ok: false, reason: "tracking-disabled" });
+      return false;
+    }
     updateWatcherHeartbeat("scan");
     scanVisibleText();
     flushQueuedLogs();
@@ -661,4 +678,7 @@ window.addEventListener("beforeunload", () => {
   flushQueuedLogs();
   chrome.runtime.sendMessage({ type: "COLONIST_WATCHER_PAGE_INACTIVE" }, () => {});
 });
-startWatching();
+chrome.storage.local.get({ colonistWatcherTrackingEnabled: false }, ({ colonistWatcherTrackingEnabled }) => {
+  trackingEnabled = colonistWatcherTrackingEnabled === true;
+  if (trackingEnabled) startWatching();
+});

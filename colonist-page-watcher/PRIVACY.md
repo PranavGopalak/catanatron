@@ -14,11 +14,13 @@ The extension reads Colonist game page activity and WebSocket frames from pages 
 
 ## Where Data Goes
 
-Data stays in Firefox extension local storage through `chrome.storage.local`. Normal use does not send data to a remote server, localhost process, native host, analytics service, or third party.
+Data stays in browser extension local storage through `chrome.storage.local`. Normal use does not send data to a remote server, localhost process, native host, analytics service, or third party.
+
+The extension uses this locally processed data only to provide its visible game-tracking dashboard. It does not sell data, use it for advertising or credit decisions, transfer it to third parties, or allow the developer or other humans to read it. Its handling of user data complies with the Chrome Web Store User Data Policy, including the Limited Use requirements.
 
 ## User Control
 
-The popup includes export/debug controls and a **New Game** reset flow. Removing the extension from Firefox removes its extension-local stored data.
+Tracking is off on a fresh install. The popup explains what the extension reads and requires the user to choose **Enable tracking** before capture begins. The same control can disable capture. The popup also includes export/debug controls and a **New Game** reset flow. Removing the extension from Firefox or Chrome removes its extension-local stored data.
 
 ## Permissions
 

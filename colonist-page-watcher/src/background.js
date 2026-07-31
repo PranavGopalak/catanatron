@@ -135,4 +135,11 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 reconcileOpenTabs();
 if (chrome.runtime.onStartup) chrome.runtime.onStartup.addListener(reconcileOpenTabs);
-if (chrome.runtime.onInstalled) chrome.runtime.onInstalled.addListener(reconcileOpenTabs);
+if (chrome.runtime.onInstalled) {
+  chrome.runtime.onInstalled.addListener(async (details) => {
+    if (details.reason === "install") {
+      await chrome.storage.local.set({ colonistWatcherTrackingEnabled: false });
+    }
+    await reconcileOpenTabs();
+  });
+}

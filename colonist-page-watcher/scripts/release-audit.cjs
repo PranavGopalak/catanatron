@@ -16,6 +16,9 @@ const dashboardJs = read('dashboard', 'app.js');
 const dashboardCss = read('dashboard', 'styles.css');
 const buildScript = read('scripts', 'build-firefox-xpi.ps1');
 const buildReleaseScript = read('scripts', 'build-release.ps1');
+const chromeManifest = JSON.parse(read('manifest.chrome.json'));
+const chromeBuildScript = read('scripts', 'build-chrome-zip.cjs');
+const chromeSubmission = read('CHROME-WEB-STORE.md');
 const amoSourceScript = read('scripts', 'build-amo-source.ps1');
 const readme = read('README.md');
 const privacy = read('PRIVACY.md');
@@ -98,6 +101,7 @@ function hasFirefoxReadyPackage() {
   assert(buildScript.includes('Join-Path $Root "assets"'), 'build must package assets');
   assert(buildReleaseScript.includes('node scripts\\validate-all.cjs'), 'release build should run full validation');
   assert(buildReleaseScript.includes('scripts\\build-firefox-xpi.ps1') && buildReleaseScript.includes('scripts\\build-amo-source.ps1'), 'release build should create both XPI and source ZIP');
+  assert(buildReleaseScript.includes('scripts\\build-chrome-zip.cjs'), 'release build should create Chrome Web Store ZIP');
   assert(buildReleaseScript.includes('node scripts\\write-release-metadata.cjs') && buildReleaseScript.includes('node scripts\\release-metadata-smoke-test.cjs'), 'release build should write and verify metadata');
   assert(amoSourceScript.includes('AMO-SUBMISSION.md') && amoSourceScript.includes('PRIVACY.md') && amoSourceScript.includes('FIREFOX-INSTALL-CHECKLIST.md'), 'AMO source build must package signing notes and install checklist');
 
@@ -119,6 +123,16 @@ function hasFirefoxReadyPackage() {
   }
 }
 
+function hasChromeReadyPackage() {
+  assert(chromeManifest.background?.service_worker === 'src/background.js', 'Chrome MV3 must use a service worker');
+  assert(!chromeManifest.browser_specific_settings, 'Chrome manifest must omit Firefox-only settings');
+  assert(chromeManifest.icons?.['128'] === 'assets/icon-128.png', 'Chrome manifest must include 128px icon');
+  assert(chromeBuildScript.includes('manifest.chrome.json') && chromeBuildScript.includes('manifest.json'), 'Chrome build must map the Chrome manifest to ZIP root');
+  assert(chromeSubmission.includes('Single purpose') && chromeSubmission.includes('Permission justifications') && chromeSubmission.includes('Privacy practices'), 'Chrome submission notes must include copy-ready review fields');
+  const zip = path.join(root, 'dist', `colonist-page-watcher-chrome-${manifest.version}.zip`);
+  assert(fs.existsSync(zip), 'rebuilt Chrome Web Store ZIP must exist');
+}
+
 function hasSigningAndPrivacyNotes() {
   assert(readme.includes('Normal Firefox use'), 'README should lead with normal Firefox use');
   assert(readme.includes('node scripts\\validate-all.cjs') && readme.includes('scripts\\build-release.ps1'), 'README should point validation to validate-all instead of stale manual lists');
@@ -137,6 +151,7 @@ hasAutomaticGameDashboard();
 hasLiveTrackingDashboard();
 hasUsablePopup();
 hasFirefoxReadyPackage();
+hasChromeReadyPackage();
 hasSigningAndPrivacyNotes();
 
 console.log('release audit ok');

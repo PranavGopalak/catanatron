@@ -24,6 +24,16 @@
         </div>
       </header>
 
+      <section class="consent" aria-labelledby="consentTitle">
+        <div>
+          <span class="consent-kicker">Local capture control</span>
+          <strong id="consentTitle">Allow game tracking on Colonist?</strong>
+          <p>The extension reads visible game activity and Colonist WebSocket frames only on colonist.io, then stores the tracker state locally in this browser. It does not send this data to us or any third party.</p>
+        </div>
+        <button id="trackingConsent" type="button">Enable tracking</button>
+        <p id="consentStatus" class="consent-status">Tracking is off. Enable it, then refresh your Colonist game tab.</p>
+      </section>
+
       <section class="summary" aria-label="Event summary">
         <div><span id="rollCount">0</span><small>Rolls</small></div>
         <div><span id="gainCount">0</span><small>Gains</small></div>

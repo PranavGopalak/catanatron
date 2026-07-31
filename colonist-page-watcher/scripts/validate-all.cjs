@@ -18,6 +18,11 @@ const commands = [
   ["node", ["--check", "scripts/analyze-logs.cjs"]],
   ["node", ["--check", "scripts/core-smoke-test.cjs"]],
   ["node", ["--check", "scripts/manifest-smoke-test.cjs"]],
+  ["node", ["--check", "scripts/chrome-manifest-smoke-test.cjs"]],
+  ["node", ["--check", "scripts/chrome-package-smoke-test.cjs"]],
+  ["node", ["--check", "scripts/chrome-store-assets-smoke-test.cjs"]],
+  ["node", ["--check", "scripts/consent-smoke-test.cjs"]],
+  ["node", ["--check", "scripts/build-chrome-zip.cjs"]],
   ["node", ["--check", "scripts/background-smoke-test.cjs"]],
   ["node", ["--check", "scripts/dashboard-smoke-test.cjs"]],
   ["node", ["--check", "scripts/dashboard-render-smoke-test.cjs"]],
@@ -31,6 +36,11 @@ const commands = [
   ["node", ["--check", "dashboard/app.js"]],
   ["node", ["scripts/core-smoke-test.cjs"]],
   ["node", ["scripts/manifest-smoke-test.cjs"]],
+  ["node", ["scripts/chrome-manifest-smoke-test.cjs"]],
+  ["node", ["scripts/consent-smoke-test.cjs"]],
+  ["node", ["scripts/build-chrome-zip.cjs"]],
+  ["node", ["scripts/chrome-package-smoke-test.cjs"]],
+  ["node", ["scripts/chrome-store-assets-smoke-test.cjs"]],
   ["node", ["scripts/background-smoke-test.cjs"]],
   ["node", ["scripts/dashboard-smoke-test.cjs"]],
   ["node", ["scripts/dashboard-render-smoke-test.cjs"]],
@@ -65,4 +75,3 @@ for (const [command, args] of commands) {
 }
 
 console.log("\nall validation checks passed");
-
