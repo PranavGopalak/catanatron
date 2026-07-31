@@ -1,68 +1,10 @@
-@use "../variables.scss";
-
 .replay-box {
-  display: grid;
-  gap: 14px;
-}
-
-.replay-heading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-}
-
-.replay-heading > div {
   display: flex;
   flex-direction: column;
-}
+  gap: 10px;
 
-.replay-heading > div > span {
-  color: variables.$teal;
-  font-size: 0.64rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.replay-heading h2 {
-  margin: 3px 0 0;
-  font-size: 1.2rem;
-}
-
-.replay-heading > strong {
-  color: variables.$gold;
-  font-size: 1rem;
-}
-
-.replay-heading > strong span {
-  color: variables.$muted;
-  font-size: 0.7rem;
-}
-
-.replay-box .move-slider {
-  color: variables.$gold;
-}
-
-.replay-jump-row {
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) 42px;
-  gap: 8px;
-  align-items: center;
-}
-
-.replay-jump-row .MuiIconButton-root {
-  border: 1px solid variables.$line;
-  border-radius: 10px;
-}
-
-.replay-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.replay-buttons .MuiButton-root {
-  min-width: 0;
-  padding-inline: 8px;
-  font-size: 0.7rem;
+  .button-container {
+    display: flex;
+    gap: 10px;
+  }
 }

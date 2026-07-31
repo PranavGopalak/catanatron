@@ -19,7 +19,7 @@ import Paper from "@mui/material/Paper";
 import Popper from "@mui/material/Popper";
 import MenuList from "@mui/material/MenuList";
 import SimCardIcon from "@mui/icons-material/SimCard";
-import { useParams } from "../routing";
+import { useParams } from "react-router";
 
 import Hidden from "../components/Hidden";
 import Prompt from "../components/Prompt";
@@ -89,7 +89,7 @@ function PlayButtons() {
       .filter((action) => action[1].startsWith("PLAY"))
       .map((action) => action[1]),
   );
-  const humanColor = getHumanColor(gameState)!;
+  const humanColor = getHumanColor(gameState);
   const discardActionType =
     gameState.current_playable_actions.find(
       (action) => action[1] === "DISCARD_RESOURCE",
@@ -396,17 +396,11 @@ export default function ActionsToolbar({
   const botsTurn = gameState.bot_colors.includes(gameState.current_color);
   const humanColor = getHumanColor(gameState);
   return (
-    <section className="action-dock" aria-label="Turn controls">
+    <>
       <div className="state-summary">
         <Hidden breakpoint={{ size: "md", direction: "up" }}>
-          <Button
-            aria-controls="table-panel"
-            aria-label="Open players and history"
-            className="open-drawer-btn"
-            onClick={openLeftDrawer}
-          >
+          <Button className="open-drawer-btn" onClick={openLeftDrawer}>
             <ChevronLeftIcon />
-            Table
           </Button>
         </Hidden>
         {humanColor && (
@@ -417,12 +411,10 @@ export default function ActionsToolbar({
         )}
         <Hidden breakpoint={{ size: "lg", direction: "up" }}>
           <Button
-            aria-controls="insights-panel"
-            aria-label="Open match insights"
             className="open-drawer-btn"
             onClick={openRightDrawer}
+            style={{ marginLeft: "auto" }}
           >
-            Insights
             <ChevronRightIcon />
           </Button>
         </Hidden>
@@ -434,15 +426,27 @@ export default function ActionsToolbar({
         {(botsTurn || gameState.winning_color) && (
           <Prompt gameState={gameState} isBotThinking={isBotThinking} />
         )}
+        {/* <Button
+          disabled={disabled}
+          className="confirm-btn"
+          variant="contained"
+          color="primary"
+          onClick={onTick}
+        >
+          Ok
+        </Button> */}
+
+        {/* <Button onClick={zoomIn}>Zoom In</Button>
+      <Button onClick={zoomOut}>Zoom Out</Button> */}
       </div>
-    </section>
+    </>
   );
 }
 
 type OptionItem = {
   label: string;
   disabled: boolean;
-  onClick: () => void | Promise<void>;
+  onClick: (event: MouseEvent | TouchEvent) => void;
 };
 
 type OptionsButtonProps = {
@@ -461,14 +465,14 @@ function OptionsButton({
   disabled,
 }: OptionsButtonProps) {
   const [open, setOpen] = useState(false);
-  const anchorRef = useRef<HTMLButtonElement>(null);
+  const anchorRef = useRef<HTMLAnchorElement>(null);
 
   const handleToggle = () => {
     setOpen((prevOpen) => !prevOpen);
   };
   const handleClose =
-    (onClick?: () => void | Promise<void>) =>
-    (event: MouseEvent | TouchEvent | React.MouseEvent) => {
+    (onClick?: (event: MouseEvent | TouchEvent) => void) =>
+    (event: MouseEvent | TouchEvent) => {
       if (
         anchorRef.current &&
         anchorRef.current.contains(event.target as Node)
@@ -476,7 +480,7 @@ function OptionsButton({
         return;
       }
 
-      void onClick?.();
+      onClick && onClick(event);
       setOpen(false);
     };
   function handleListKeyDown(event: React.KeyboardEvent) {
@@ -500,8 +504,8 @@ function OptionsButton({
       <Button
         disabled={disabled}
         ref={anchorRef}
+        href="#"
         aria-controls={open ? menuListId : undefined}
-        aria-expanded={open ? "true" : undefined}
         aria-haspopup="true"
         variant="contained"
         color="secondary"

@@ -1,8 +1,8 @@
 import json
 import logging
+import traceback
 
 from flask import Response, Blueprint, jsonify, abort, request
-from werkzeug.exceptions import HTTPException
 
 from catanatron.web.models import upsert_game_state, get_game_state
 from catanatron.json import GameEncoder, action_from_json
@@ -18,15 +18,15 @@ bp = Blueprint("api", __name__, url_prefix="/api")
 VALID_MAP_TEMPLATES = {"BASE", "MINI", "TOURNAMENT"}
 
 
-def player_factory(player_key, color):
-    if player_key == "CATANATRON":
-        return AlphaBetaPlayer(color, 2, True)
-    elif player_key == "WEIGHTED_RANDOM":
-        return WeightedRandomPlayer(color)
-    elif player_key == "RANDOM":
-        return RandomPlayer(color)
-    elif player_key == "HUMAN":
-        return ValueFunctionPlayer(color, is_bot=False)
+def player_factory(player_key):
+    if player_key[0] == "CATANATRON":
+        return AlphaBetaPlayer(player_key[1], 2, True)
+    elif player_key[0] == "WEIGHTED_RANDOM":
+        return WeightedRandomPlayer(player_key[1])
+    elif player_key[0] == "RANDOM":
+        return RandomPlayer(player_key[1])
+    elif player_key[0] == "HUMAN":
+        return ValueFunctionPlayer(player_key[1], is_bot=False)
     else:
         raise ValueError("Invalid player key")
 
@@ -39,20 +39,6 @@ def post_game_endpoint():
     player_keys = request.json["players"]
     if not isinstance(player_keys, list) or not 2 <= len(player_keys) <= 4:
         abort(400, description="'players' must be a list with 2 to 4 entries")
-    valid_player_keys = {"CATANATRON", "WEIGHTED_RANDOM", "RANDOM", "HUMAN"}
-    if any(
-        not isinstance(player_key, str) or player_key not in valid_player_keys
-        for player_key in player_keys
-    ):
-        abort(
-            400,
-            description=(
-                "Each player must be one of CATANATRON, WEIGHTED_RANDOM, "
-                "RANDOM, or HUMAN"
-            ),
-        )
-    if player_keys.count("HUMAN") > 1:
-        abort(400, description="Only one HUMAN player is supported")
 
     map_template = request.json.get("map_template", "BASE")
     if map_template not in VALID_MAP_TEMPLATES:
@@ -62,29 +48,18 @@ def post_game_endpoint():
         )
 
     discard_limit = request.json.get("discard_limit", 7)
-    if (
-        isinstance(discard_limit, bool)
-        or not isinstance(discard_limit, int)
-        or not 5 <= discard_limit <= 20
-    ):
+    if not isinstance(discard_limit, int) or not 5 <= discard_limit <= 20:
         abort(400, description="'discard_limit' must be an integer between 5 and 20")
 
     vps_to_win = request.json.get("vps_to_win", 10)
-    if (
-        isinstance(vps_to_win, bool)
-        or not isinstance(vps_to_win, int)
-        or not 3 <= vps_to_win <= 20
-    ):
+    if not isinstance(vps_to_win, int) or not 3 <= vps_to_win <= 20:
         abort(400, description="'vps_to_win' must be an integer between 3 and 20")
 
     friendly_robber = request.json.get("friendly_robber", False)
     if not isinstance(friendly_robber, bool):
         abort(400, description="'friendly_robber' must be a boolean")
 
-    players = [
-        player_factory(player_key, color)
-        for player_key, color in zip(player_keys, Color)
-    ]
+    players = list(map(player_factory, zip(player_keys, Color)))
     catan_map = build_map(map_template)
 
     game = Game(
@@ -126,23 +101,14 @@ def post_action_endpoint(game_id):
             mimetype="application/json",
         )
 
-    payload = request.get_json(silent=True)
-    body_is_empty = not request.data or payload is None or payload == {}
-    if game.state.current_player().is_bot:
-        if not body_is_empty:
-            abort(409, description="Wait for the bot turn to finish")
+    # TODO: remove `or body_is_empty` when fully implement actions in FE
+    body_is_empty = (not request.data) or request.json is None or request.json == {}
+    if game.state.current_player().is_bot or body_is_empty:
         game.play_tick()
         upsert_game_state(game)
     else:
-        if body_is_empty:
-            abort(400, description="An action is required on a human turn")
-        if not isinstance(payload, list) or len(payload) != 3:
-            abort(400, description="Action must be a three-item JSON array")
-        try:
-            action = action_from_json(payload)
-            game.execute(action)
-        except (KeyError, TypeError, ValueError, IndexError) as error:
-            abort(400, description=f"Invalid action: {error}")
+        action = action_from_json(request.json)
+        game.execute(action)
         upsert_game_state(game)
 
     return Response(
@@ -206,12 +172,13 @@ def mcts_analysis_endpoint(game_id, state_index):
             mimetype="application/json",
         )
 
-    except HTTPException:
-        raise
-    except Exception:
-        logging.exception("Error in MCTS analysis endpoint")
+    except Exception as e:
+        logging.error(f"Error in MCTS analysis endpoint: {str(e)}")
+        logging.error(traceback.format_exc())
         return Response(
-            response=json.dumps({"success": False, "error": "Analysis failed"}),
+            response=json.dumps(
+                {"success": False, "error": str(e), "trace": traceback.format_exc()}
+            ),
             status=500,
             mimetype="application/json",
         )
@@ -222,15 +189,12 @@ def _parse_state_index(state_index_str: str):
     if state_index_str == "latest":
         return None
     try:
-        state_index = int(state_index_str)
+        return int(state_index_str)
     except ValueError:
         abort(
             400,
             description="Invalid state_index format. state_index must be an integer or 'latest'.",
         )
-    if state_index < 0:
-        abort(400, description="state_index must be zero or greater")
-    return state_index
 
 
 # ===== Debugging Routes

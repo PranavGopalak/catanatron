@@ -3,7 +3,7 @@ import ACTIONS from "./actions";
 import { type GameState } from "./utils/api.types";
 
 export type CatanState = {
-  gameState: GameState | null;
+  gameState: GameState | null; // TODO
   freeRoadsAvailable: number;
   isBuildingRoad: boolean;
   isBuildingSettlement: boolean;
@@ -17,7 +17,7 @@ export type CatanState = {
 };
 type ReducerAction = {
   type: keyof typeof ACTIONS;
-  data?: boolean | GameState | null;
+  data?: any; // TODO find exact types
 };
 
 const initialState: CatanState = {
@@ -65,12 +65,6 @@ const StateProvider = ({ children }: { children: React.ReactNode }) => {
             isPlayingMonopoly: false,
             isPlayingYearOfPlenty: false,
             isMovingRobber: false,
-          };
-        case ACTIONS.CLEAR_GAME_STATE:
-          return {
-            ...initialState,
-            isLeftDrawerOpen: state.isLeftDrawerOpen,
-            isRightDrawerOpen: state.isRightDrawerOpen,
           };
         case ACTIONS.TOGGLE_BUILDING_ROAD:
           return { ...state, isBuildingRoad: !state.isBuildingRoad };

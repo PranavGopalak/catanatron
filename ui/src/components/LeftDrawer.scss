@@ -1,196 +1,32 @@
 @use "../variables.scss";
 
-.game-panel {
-  min-width: 0;
-  overflow: hidden;
-  color: variables.$parchment;
-  border: 1px solid variables.$line;
-  background: linear-gradient(180deg, #13211d, #0d1916);
-}
+$dark-divider: rgb(0 0 0 / 80%);
 
-.table-panel {
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
-  border-width: 0 1px 0 0;
-}
-
-.panel-heading {
-  display: flex;
-  min-height: 70px;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid variables.$line;
-}
-
-.panel-heading > div {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.panel-heading svg {
-  color: variables.$gold;
-}
-
-.panel-heading span {
-  display: flex;
-  flex-direction: column;
-}
-
-.panel-heading strong {
-  font-size: 0.9rem;
-}
-
-.panel-heading small {
-  color: variables.$muted;
-  font-size: 0.66rem;
-}
-
-.panel-close.MuiButtonBase-root {
-  display: none;
-  color: variables.$muted;
-}
-
-.player-stack {
-  display: grid;
-  gap: 8px;
-  padding: 12px;
-  overflow-y: auto;
-  border-bottom: 1px solid variables.$line;
-}
-
-.history-section {
-  display: grid;
-  min-height: 0;
-  grid-template-rows: auto minmax(0, 1fr);
-}
-
-.history-heading {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 48px;
-  padding: 10px 15px;
-  border-bottom: 1px solid variables.$line;
-}
-
-.history-heading svg {
-  color: variables.$teal;
-  font-size: 1rem;
-}
-
-.history-heading h2 {
-  margin: 0;
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
-}
-
-.history-heading span {
-  margin-left: auto;
-  color: variables.$muted;
-  font-size: 0.68rem;
-}
-
-.history-list {
-  min-height: 0;
-  padding: 8px 12px 16px;
-  overflow-y: auto;
-  scrollbar-color: variables.$surface-soft transparent;
-  scrollbar-width: thin;
-}
-
-.history-empty {
-  margin: 12px 4px;
-  color: variables.$muted;
-  font-size: 0.72rem;
-  line-height: 1.5;
-}
-
-.history-entry {
-  display: grid;
-  grid-template-columns: 25px 1fr;
-  gap: 8px;
-  padding: 8px 4px;
-  color: variables.$muted;
-  border-bottom: 1px solid rgb(236 226 207 / 7%);
-}
-
-.history-entry > span {
-  display: grid;
-  width: 22px;
-  height: 22px;
-  place-items: center;
-  color: variables.$ink;
-  font-size: 0.6rem;
-  font-weight: 800;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.history-entry p {
-  margin: 2px 0 0;
-  font-size: 0.68rem;
-  line-height: 1.4;
-}
-
-.history-entry.red {
-  color: variables.$red;
-}
-
-.history-entry.blue {
-  color: variables.$blue;
-}
-
-.history-entry.orange {
-  color: variables.$orange;
-}
-
-.history-entry.white {
-  color: variables.$white;
-}
-
-.drawer-backdrop {
-  display: none;
-}
-
-@media (max-width: 1099px) {
-  .table-panel {
-    position: fixed;
-    z-index: 1400;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: min(88vw, 330px);
-    border-width: 0 1px 0 0;
-    box-shadow: 24px 0 60px rgb(0 0 0 / 45%);
-    transform: translateX(-104%);
-    transition: transform 220ms ease;
+.left-drawer {
+  .MuiDrawer-paper {
+    width: 280px;
+    background: variables.$dark-gray;
   }
 
-  .table-panel.mobile-open {
-    transform: translateX(0);
+  .MuiDivider-root {
+    background: $dark-divider;
   }
 
-  .panel-close.MuiButtonBase-root {
-    display: inline-flex;
+  .MuiDrawer-paperAnchorDockedLeft {
+    border-color: $dark-divider;
   }
 
-  .drawer-backdrop {
-    position: fixed;
-    z-index: 1300;
-    inset: 0;
-    display: block;
-    padding: 0;
-    cursor: pointer;
-    border: 0;
-    background: rgb(3 10 8 / 72%);
-    backdrop-filter: blur(4px);
-  }
-}
+  .log {
+    overflow-y: auto;
+    font-size: 0.8rem;
 
-@media (prefers-reduced-motion: reduce) {
-  .table-panel {
-    transition: none;
+    // To ensure always clipped towards bottom
+    display: flex;
+    flex-direction: column-reverse;
+    scrollbar-width: thin;
+    scrollbar-color: #454545 variables.$dark-gray;
+    .action {
+      padding: variables.$sm-gutter;
+    }
   }
 }

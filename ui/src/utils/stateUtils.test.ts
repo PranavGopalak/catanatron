@@ -38,14 +38,6 @@ describe("playerKey", () => {
     };
     expect(playerKey(gameState as GameState, "BLUE")).toBe("P0");
   });
-  test("rejects a color that is not seated", () => {
-    const gameState: Partial<GameState> = {
-      colors: ["BLUE", "RED"],
-    };
-    expect(() => playerKey(gameState as GameState, "WHITE")).toThrow(
-      "Color WHITE is not seated",
-    );
-  });
 });
 
 describe("getHumanColor", () => {
