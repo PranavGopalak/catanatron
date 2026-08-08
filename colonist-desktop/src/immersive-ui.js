@@ -4,7 +4,7 @@ const styles = require("./immersive.css");
 const {
   RESOURCE_ORDER,
   RESOURCE_UI,
-  buildHandSlots,
+  buildHandGroups,
   count,
   knowledgeFor,
   matchPlayer,
@@ -16,6 +16,7 @@ const STYLE_ID = "catanatron-immersive-styles";
 const RAIL_ID = "catanatron-intelligence-rail";
 const ROW_SELECTOR = '[class*="playerRow"][data-player-color]';
 const RESOURCE_CARD_SELECTOR = '[data-resource-card="true"]';
+const FALLBACK_DOCK_ID = "catanatron-intelligence-dock";
 
 function escapeHtml(value) {
   return String(value == null ? "" : value)
@@ -46,23 +47,20 @@ function cardBackSource(original) {
   return original?.querySelector("img")?.src || "";
 }
 
-function handCardMarkup(slot, resourceImages, backImage) {
-  if (slot.kind === "overflow") {
-    return `<span class="catanatron-hand-card is-overflow" title="${slot.count} additional cards">+${slot.count}</span>`;
+function handGroupMarkup(group, resourceImages, backImage) {
+  if (group.kind === "unknown") {
+    return `<span class="catanatron-hand-card is-unknown" title="${group.count} unresolved resource ${group.count === 1 ? "card" : "cards"}">${backImage ? `<img src="${escapeHtml(backImage)}" alt="">` : "?"}<strong class="catanatron-card-count">${group.count}</strong></span>`;
   }
-  if (slot.kind === "unknown") {
-    return `<span class="catanatron-hand-card is-unknown" title="Unresolved resource card">${backImage ? `<img src="${escapeHtml(backImage)}" alt="">` : "?"}</span>`;
-  }
-  const config = RESOURCE_UI[slot.resource];
-  const image = resourceImages[slot.resource];
-  return `<span class="catanatron-hand-card is-resource is-${slot.resource}" data-mark="${config.mark}" title="Guaranteed ${config.label}">${image ? `<img src="${escapeHtml(image)}" alt="">` : config.mark}</span>`;
+  const config = RESOURCE_UI[group.resource];
+  const image = resourceImages[group.resource];
+  return `<span class="catanatron-hand-card is-resource is-${group.resource}" data-mark="${config.mark}" title="${group.count} guaranteed ${config.label}">${image ? `<img src="${escapeHtml(image)}" alt="">` : config.mark}<strong class="catanatron-card-count">${group.count}</strong></span>`;
 }
 
 function rangeMarkup(player) {
   return RESOURCE_ORDER.map((resource) => {
     const config = RESOURCE_UI[resource];
     const knowledge = knowledgeFor(player, resource);
-    const value = knowledge.min === knowledge.max ? knowledge.min : `${knowledge.min} to ${knowledge.max}`;
+    const value = knowledge.min === knowledge.max ? knowledge.min : `${knowledge.min}…${knowledge.max}`;
     const title = knowledge.state === "impossible"
       ? `${config.label}: cannot have any`
       : knowledge.state === "possible"
@@ -125,6 +123,7 @@ class ImmersiveGameUI {
     this.onResetTracker = onResetTracker;
     this.onActiveChange = onActiveChange;
     this.active = false;
+    this.trimmedNodes = new Map();
     this.scheduled = false;
     this.destroyed = false;
     this.observer = new MutationObserver(() => this.schedule());
@@ -156,6 +155,59 @@ class ImmersiveGameUI {
     document.head.appendChild(style);
   }
 
+  rememberAndSetDisplay(node, value) {
+    if (!node) return;
+    if (!this.trimmedNodes.has(node)) {
+      this.trimmedNodes.set(node, {
+        value: node.style.getPropertyValue("display"),
+        priority: node.style.getPropertyPriority("display"),
+        ariaHidden: node.getAttribute("aria-hidden"),
+      });
+    }
+    node.style.setProperty("display", value, "important");
+    node.setAttribute("aria-hidden", "true");
+  }
+
+  ensureDock() {
+    document.documentElement.classList.add("catanatron-game-immersive");
+    let dock = document.getElementById("in_game_ad_left");
+    if (!dock) {
+      dock = document.getElementById(FALLBACK_DOCK_ID);
+      if (!dock) {
+        dock = document.createElement("div");
+        dock.id = FALLBACK_DOCK_ID;
+        document.querySelector("#ui-game")?.appendChild(dock);
+      }
+    }
+    dock.classList.add("catanatron-intelligence-dock");
+    const stageLeft = document.querySelector("#ui-game")?.getBoundingClientRect().left || 0;
+    const dockWidth = stageLeft >= 120 ? Math.round(stageLeft) : Math.min(165, Math.round(window.innerWidth * 0.2));
+    dock.style.setProperty("--cat-dock-width", `${dockWidth}px`);
+    this.rememberAndSetDisplay(dock, "block");
+    for (const child of dock.children) {
+      if (child.id !== RAIL_ID) this.rememberAndSetDisplay(child, "none");
+    }
+    this.rememberAndSetDisplay(document.getElementById("in_game_ad_right"), "none");
+    this.rememberAndSetDisplay(document.getElementById("in_game_ad_bottom"), "none");
+    this.rememberAndSetDisplay(document.getElementById("in_game_ad_bottom_small"), "none");
+    return dock;
+  }
+
+  restoreAds() {
+    for (const [node, original] of this.trimmedNodes) {
+      if (original.value) node.style.setProperty("display", original.value, original.priority);
+      else node.style.removeProperty("display");
+      if (original.ariaHidden == null) node.removeAttribute("aria-hidden");
+      else node.setAttribute("aria-hidden", original.ariaHidden);
+    }
+    this.trimmedNodes.clear();
+    document.documentElement.classList.remove("catanatron-game-immersive");
+    const dock = document.querySelector(".catanatron-intelligence-dock");
+    dock?.classList.remove("catanatron-intelligence-dock");
+    dock?.style.removeProperty("--cat-dock-width");
+    document.getElementById(FALLBACK_DOCK_ID)?.remove();
+  }
+
   setActive(active) {
     if (this.active === active) return;
     this.active = active;
@@ -171,11 +223,12 @@ class ImmersiveGameUI {
       return;
     }
     this.ensureStyles();
-    this.renderRail();
+    const dock = this.ensureDock();
+    this.renderRail(dock);
     this.renderHands();
   }
 
-  renderRail() {
+  renderRail(dock) {
     let rail = document.getElementById(RAIL_ID);
     if (!rail) {
       rail = document.createElement("aside");
@@ -193,8 +246,9 @@ class ImmersiveGameUI {
           button.disabled = false;
         }
       });
-      document.body.appendChild(rail);
+      dock.appendChild(rail);
     }
+    if (rail.parentElement !== dock) dock.appendChild(rail);
     const capture = this.tracker.capture || {};
     const enabled = Boolean(this.state.trackingEnabled);
     const status = !enabled ? "Counting off" : capture.lastError ? "Capture error" : capture.attached ? `${count(this.tracker.counts?.frames)} frames` : "Starting capture";
@@ -244,9 +298,9 @@ class ImmersiveGameUI {
       const digest = `${playerDigest(player)}:${Object.values(resourceImages).join("|")}:${cardBackSource(original)}`;
       if (strip.dataset.digest === digest) continue;
       strip.dataset.digest = digest;
-      const slots = buildHandSlots(player);
-      strip.innerHTML = slots.length
-        ? slots.map((slot) => handCardMarkup(slot, resourceImages, cardBackSource(original))).join("")
+      const groups = buildHandGroups(player);
+      strip.innerHTML = groups.length
+        ? groups.map((group) => handGroupMarkup(group, resourceImages, cardBackSource(original))).join("")
         : `<span class="catanatron-hand-zero">0 cards</span>`;
     }
   }
@@ -255,6 +309,7 @@ class ImmersiveGameUI {
     document.getElementById(RAIL_ID)?.remove();
     for (const original of document.querySelectorAll(".catanatron-original-resource-card")) original.classList.remove("catanatron-original-resource-card");
     for (const strip of document.querySelectorAll(".catanatron-hand-strip")) strip.remove();
+    this.restoreAds();
   }
 
   destroy() {

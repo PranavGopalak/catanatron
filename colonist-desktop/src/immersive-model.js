@@ -8,7 +8,6 @@ const RESOURCE_UI = Object.freeze({
   wool: Object.freeze({ enum: 3, mark: "WO", label: "Wool" }),
 });
 const RESOURCE_ORDER = Object.freeze(Object.keys(RESOURCE_UI));
-const MAX_INLINE_CARDS = 14;
 
 function count(value) {
   const number = Number(value || 0);
@@ -27,18 +26,17 @@ function guaranteedCount(player, resource) {
   return count(player?.resourceKnowledge?.[resource]?.min ?? player?.cardRanges?.[resource]?.min ?? player?.cards?.[resource]);
 }
 
-function buildHandSlots(player, limit = MAX_INLINE_CARDS) {
+function buildHandGroups(player) {
   const total = count(player?.handTotal ?? player?.knownCards);
-  const slots = [];
+  const groups = [];
+  let remaining = total;
   for (const resource of RESOURCE_ORDER) {
-    for (let index = 0; index < guaranteedCount(player, resource); index += 1) {
-      slots.push({ kind: "resource", resource });
-    }
+    const amount = Math.min(remaining, guaranteedCount(player, resource));
+    if (amount > 0) groups.push({ kind: "resource", resource, count: amount });
+    remaining -= amount;
   }
-  while (slots.length < total) slots.push({ kind: "unknown" });
-  if (slots.length <= limit) return slots;
-  const visible = Math.max(1, limit - 1);
-  return slots.slice(0, visible).concat({ kind: "overflow", count: slots.length - visible });
+  if (remaining > 0) groups.push({ kind: "unknown", count: remaining });
+  return groups;
 }
 
 function matchPlayer(players, color, name) {
@@ -75,10 +73,9 @@ function playerDigest(player) {
 }
 
 module.exports = {
-  MAX_INLINE_CARDS,
   RESOURCE_ORDER,
   RESOURCE_UI,
-  buildHandSlots,
+  buildHandGroups,
   count,
   guaranteedCount,
   knowledgeFor,

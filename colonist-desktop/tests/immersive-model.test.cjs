@@ -3,13 +3,13 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
-  buildHandSlots,
+  buildHandGroups,
   knowledgeFor,
   matchPlayer,
   normalizePlayerName,
 } = require("../src/immersive-model");
 
-test("renders guaranteed cards before unresolved backs for the exact hand total", () => {
+test("groups guaranteed resources and unresolved cards with visible counts", () => {
   const player = {
     handTotal: 7,
     resourceKnowledge: {
@@ -20,21 +20,23 @@ test("renders guaranteed cards before unresolved backs for the exact hand total"
       wool: { min: 0, max: 1 },
     },
   };
-  const slots = buildHandSlots(player);
-  assert.equal(slots.length, 7);
-  assert.deepEqual(slots.slice(0, 3), [
-    { kind: "resource", resource: "brick" },
-    { kind: "resource", resource: "lumber" },
-    { kind: "resource", resource: "lumber" },
+  const groups = buildHandGroups(player);
+  assert.deepEqual(groups, [
+    { kind: "resource", resource: "brick", count: 1 },
+    { kind: "resource", resource: "lumber", count: 2 },
+    { kind: "unknown", count: 4 },
   ]);
-  assert(slots.slice(3).every((slot) => slot.kind === "unknown"));
   assert.equal(knowledgeFor(player, "ore").state, "impossible");
 });
 
-test("bounds very large hands with an honest overflow slot", () => {
-  const slots = buildHandSlots({ handTotal: 22, cards: { brick: 2 } });
-  assert.equal(slots.length, 14);
-  assert.deepEqual(slots.at(-1), { kind: "overflow", count: 9 });
+test("keeps a large hand compact and never exceeds the observed total", () => {
+  assert.deepEqual(buildHandGroups({ handTotal: 22, cards: { brick: 2 } }), [
+    { kind: "resource", resource: "brick", count: 2 },
+    { kind: "unknown", count: 20 },
+  ]);
+  assert.deepEqual(buildHandGroups({ handTotal: 2, cards: { brick: 3, lumber: 2 } }), [
+    { kind: "resource", resource: "brick", count: 2 },
+  ]);
 });
 
 test("matches player rows by color first and normalized name second", () => {
