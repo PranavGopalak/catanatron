@@ -2,7 +2,13 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { buildCounterState, calculateResourceRanges } = require("../src/tracker-state");
+const {
+  buildCounterState,
+  buildDevDeckWatch,
+  buildWinWatch,
+  calculateResourceRanges,
+  decoratePlayerKnowledge,
+} = require("../src/tracker-state");
 
 test("builds exact local counts and bounded opponent ranges", () => {
   const analysis = {
@@ -35,8 +41,51 @@ test("builds exact local counts and bounded opponent ranges", () => {
   assert.equal(opponent.exactHand, false);
   assert.equal(opponent.cardRanges.brick.min, 1);
   assert(opponent.cardRanges.brick.max <= 3);
+  assert.equal(opponent.knownCards, 1);
+  assert.equal(opponent.unresolvedCards, 2);
+  assert.equal(opponent.resourceKnowledge.brick.state, "guaranteed-plus");
+  assert(opponent.canHave.includes("ore"));
   assert.equal(state.counts.frames, 10);
   assert.equal(state.counts.events, 3);
+});
+
+test("tracks development card usage and exhausted card types", () => {
+  const watch = buildDevDeckWatch([
+    { type: "development_card_bought" },
+    { type: "development_card_bought" },
+    { type: "development_card_bought" },
+    { type: "development_card_played", developmentCard: "Knight" },
+    { type: "development_card_played", developmentCard: "Monopoly" },
+    { type: "development_card_played", developmentCard: "development_card_monopoly" },
+  ]);
+  assert.equal(watch.bought, 3);
+  assert.equal(watch.playedTotal, 3);
+  assert.equal(watch.hiddenInHands, 0);
+  const monopoly = watch.rows.find((row) => row.name === "monopoly");
+  assert.deepEqual(monopoly, { name: "monopoly", played: 2, limit: 2, remaining: 0, exhausted: true, known: true });
+});
+
+test("derives possible resources and immediate point build risk", () => {
+  const player = decoratePlayerKnowledge({
+    name: "Avery",
+    color: 1,
+    handTotal: 5,
+    cards: { brick: 0, lumber: 0, ore: 3, grain: 2, wool: 0 },
+    cardRanges: {
+      brick: { min: 0, max: 0 },
+      lumber: { min: 0, max: 0 },
+      ore: { min: 3, max: 3 },
+      grain: { min: 2, max: 2 },
+      wool: { min: 0, max: 0 },
+    },
+    score: { visiblePoints: 9, hiddenVpRisk: 0 },
+  });
+  assert.deepEqual(player.cannotHave, ["brick", "lumber", "wool"]);
+  assert.deepEqual(player.canHave, ["ore", "grain"]);
+  const risk = buildWinWatch([player])[0];
+  assert.equal(risk.buildPoints, 1);
+  assert.deepEqual(risk.builds, ["city"]);
+  assert.equal(risk.status, "danger");
 });
 
 test("keeps honest full ranges when no public composition is known", () => {

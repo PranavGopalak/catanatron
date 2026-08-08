@@ -325,6 +325,8 @@
   font: 750 12px/1 inherit;
 }
 .hud-launcher.is-visible { display: flex; }
+.hud-panel.is-game-suppressed,
+.hud-launcher.is-game-suppressed { display: none !important; }
 .hud-launcher-mark { width: 24px; height: 24px; display: grid; place-items: center; background: rgba(0,0,0,.12); border-radius: 7px; font: 800 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
 
 .hud-toast {

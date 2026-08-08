@@ -2,6 +2,7 @@
 
 const { ipcRenderer } = require("electron");
 const styles = require("./hud.css");
+const { ImmersiveGameUI } = require("./immersive-ui");
 const {
   DICE_ODDS,
   clamp,
@@ -257,6 +258,11 @@ async function mountHud() {
   let startedAt = null;
   let timerInterval = null;
   let dragState = null;
+  let immersive = null;
+
+  function syncImmersive() {
+    immersive?.update(tracker, state);
+  }
 
   function currentElapsed() {
     return elapsedBeforeStart + (startedAt === null ? 0 : Date.now() - startedAt);
@@ -330,6 +336,31 @@ async function mountHud() {
     }
     if (state.activeTab === "settings") content.innerHTML = settingsMarkup(state, tracker, awaitingReset);
     applyTrackerChrome();
+    syncImmersive();
+  }
+
+  async function toggleTracking() {
+    state.trackingEnabled = !state.trackingEnabled;
+    renderContent();
+    scheduleSave();
+    try {
+      tracker = await ipcRenderer.invoke("tracker:set-enabled", {
+        enabled: state.trackingEnabled,
+        localPlayerName: state.localPlayerName,
+      });
+      renderContent();
+      showToast(state.trackingEnabled ? "Card counting enabled" : "Card counting disabled and cleared");
+    } catch (_error) {
+      state.trackingEnabled = false;
+      renderContent();
+      showToast("Card counting could not be started");
+    }
+  }
+
+  async function resetTracker() {
+    tracker = await ipcRenderer.invoke("tracker:reset");
+    renderContent();
+    showToast("Card counts reset for a new game");
   }
 
   function updateTimerDisplay() {
@@ -387,28 +418,8 @@ async function mountHud() {
     if (action === "timer-toggle") setTimerRunning(startedAt === null);
     if (action === "timer-new") resetTimer(true);
     if (action === "timer-reset") resetTimer(false);
-    if (action === "toggle-tracking") {
-      state.trackingEnabled = !state.trackingEnabled;
-      renderContent();
-      scheduleSave();
-      try {
-        tracker = await ipcRenderer.invoke("tracker:set-enabled", {
-          enabled: state.trackingEnabled,
-          localPlayerName: state.localPlayerName,
-        });
-        renderContent();
-        showToast(state.trackingEnabled ? "Card counting enabled" : "Card counting disabled and cleared");
-      } catch (_error) {
-        state.trackingEnabled = false;
-        renderContent();
-        showToast("Card counting could not be started");
-      }
-    }
-    if (action === "reset-tracker") {
-      tracker = await ipcRenderer.invoke("tracker:reset");
-      renderContent();
-      showToast("Card counts reset for a new game");
-    }
+    if (action === "toggle-tracking") await toggleTracking();
+    if (action === "reset-tracker") await resetTracker();
     if (action === "center-panel") {
       const rect = panel.getBoundingClientRect();
       state.position = {
@@ -524,7 +535,10 @@ async function mountHud() {
   ipcRenderer.on("tracker:update", (_event, snapshot) => {
     tracker = snapshot || tracker;
     if (state.activeTab === "cards" || state.activeTab === "settings") renderContent();
-    else applyTrackerChrome();
+    else {
+      applyTrackerChrome();
+      syncImmersive();
+    }
   });
 
   const attachmentObserver = new MutationObserver(() => {
@@ -532,6 +546,14 @@ async function mountHud() {
   });
   attachmentObserver.observe(document.documentElement, { childList: true });
 
+  immersive = new ImmersiveGameUI({
+    onToggleTracking: toggleTracking,
+    onResetTracker: resetTracker,
+    onActiveChange(active) {
+      panel.classList.toggle("is-game-suppressed", active);
+      launcher.classList.toggle("is-game-suppressed", active);
+    },
+  });
   applyShellState();
   renderContent();
   try {

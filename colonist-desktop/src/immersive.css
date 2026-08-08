@@ -1,0 +1,175 @@
+#catanatron-intelligence-rail,
+.catanatron-hand-strip {
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  box-sizing: border-box;
+}
+
+#catanatron-intelligence-rail *,
+.catanatron-hand-strip * { box-sizing: border-box; }
+
+#catanatron-intelligence-rail {
+  --cat-bg: rgba(10, 19, 31, .96);
+  --cat-panel: rgba(255, 255, 255, .055);
+  --cat-border: rgba(255, 255, 255, .12);
+  --cat-text: #f4f8fc;
+  --cat-muted: #9aabc0;
+  --cat-gold: #f5b544;
+  --cat-green: #4fd19c;
+  --cat-red: #ff7e82;
+  position: fixed;
+  z-index: 2147483645;
+  top: 34px;
+  left: 168px;
+  width: 232px;
+  max-height: calc(100vh - 68px);
+  overflow: auto;
+  color: var(--cat-text);
+  background: linear-gradient(160deg, rgba(18, 35, 54, .98), var(--cat-bg));
+  border: 1px solid var(--cat-border);
+  border-radius: 14px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .46);
+  pointer-events: auto;
+  user-select: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.18) transparent;
+}
+
+.catanatron-rail-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 12px 10px;
+  border-bottom: 1px solid var(--cat-border);
+}
+
+.catanatron-rail-mark {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: #17202a;
+  background: var(--cat-gold);
+  border-radius: 8px;
+  font: 850 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.catanatron-rail-title { min-width: 0; flex: 1; }
+.catanatron-rail-title strong { display: block; font-size: 11px; letter-spacing: .02em; }
+.catanatron-rail-title span { display: block; margin-top: 2px; color: var(--cat-muted); font-size: 8px; }
+.catanatron-live-dot { width: 7px; height: 7px; flex: none; background: var(--cat-green); border-radius: 50%; box-shadow: 0 0 0 3px rgba(79,209,156,.14); }
+.catanatron-live-dot.is-off { background: #718198; box-shadow: none; }
+.catanatron-live-dot.is-error { background: var(--cat-red); }
+
+.catanatron-rail-actions { display: flex; gap: 6px; padding: 9px 11px 0; }
+.catanatron-rail-button {
+  min-height: 29px;
+  flex: 1;
+  padding: 0 9px;
+  color: #17202a;
+  background: var(--cat-gold);
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font: 800 9px/1 inherit;
+}
+.catanatron-rail-button.secondary { color: var(--cat-text); background: rgba(255,255,255,.1); border: 1px solid var(--cat-border); }
+.catanatron-rail-button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+.catanatron-rail-section { padding: 10px 11px; border-bottom: 1px solid rgba(255,255,255,.075); }
+.catanatron-rail-section:last-child { border-bottom: 0; }
+.catanatron-section-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 7px; color: var(--cat-muted); font-size: 8px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.catanatron-section-title span { color: var(--cat-gold); letter-spacing: 0; }
+
+.catanatron-dev-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 7px; }
+.catanatron-dev-summary div { padding: 5px 3px; text-align: center; background: var(--cat-panel); border-radius: 6px; }
+.catanatron-dev-summary strong { display: block; font-size: 12px; }
+.catanatron-dev-summary span { display: block; margin-top: 1px; color: var(--cat-muted); font-size: 7px; }
+.catanatron-dev-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 4px 0; color: #dce6f2; font-size: 8px; text-transform: capitalize; }
+.catanatron-dev-row strong { font: 750 8px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.catanatron-dev-row.is-exhausted { color: #7f8c9d; text-decoration: line-through; }
+
+.catanatron-intel-player { padding: 7px; margin-top: 6px; background: var(--cat-panel); border: 1px solid rgba(255,255,255,.065); border-radius: 9px; }
+.catanatron-intel-player:first-of-type { margin-top: 0; }
+.catanatron-intel-head { display: flex; align-items: center; gap: 6px; }
+.catanatron-player-color { width: 8px; height: 8px; flex: none; border-radius: 50%; background: #aab5c3; }
+.catanatron-player-color.color-1 { background: #e35b58; }
+.catanatron-player-color.color-2 { background: #4c85d9; }
+.catanatron-player-color.color-3 { background: #e7ab45; }
+.catanatron-player-color.color-4 { background: #51a769; }
+.catanatron-player-color.color-5 { background: #404a58; }
+.catanatron-intel-name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; font-weight: 750; }
+.catanatron-intel-total { color: var(--cat-muted); font: 700 8px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.catanatron-range-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-top: 6px; }
+.catanatron-range-chip { min-width: 0; padding: 4px 1px 3px; text-align: center; background: rgba(255,255,255,.07); border: 1px solid transparent; border-radius: 5px; }
+.catanatron-range-chip span { display: block; color: var(--cat-muted); font-size: 6px; font-weight: 850; }
+.catanatron-range-chip strong { display: block; margin-top: 2px; font: 800 7px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.catanatron-range-chip.is-guaranteed, .catanatron-range-chip.is-exact { color: #c8f9e5; border-color: rgba(79,209,156,.3); background: rgba(79,209,156,.1); }
+.catanatron-range-chip.is-possible { color: #f8dca4; border-color: rgba(245,181,68,.22); }
+.catanatron-range-chip.is-impossible { color: #6f7c8d; opacity: .62; }
+.catanatron-intel-meta { margin-top: 5px; color: var(--cat-muted); font-size: 7px; line-height: 1.35; }
+.catanatron-intel-meta strong { color: #dfe8f3; }
+.catanatron-risk-danger { color: var(--cat-red) !important; }
+.catanatron-risk-watch, .catanatron-risk-close { color: var(--cat-gold) !important; }
+.catanatron-risk-stable { color: var(--cat-green) !important; }
+
+.catanatron-event { position: relative; padding: 0 0 6px 9px; color: #dce5f0; font-size: 8px; line-height: 1.35; }
+.catanatron-event:last-child { padding-bottom: 0; }
+.catanatron-event::before { content: ""; position: absolute; top: 4px; left: 0; width: 4px; height: 4px; background: var(--cat-gold); border-radius: 50%; }
+.catanatron-empty { color: var(--cat-muted); font-size: 8px; line-height: 1.45; }
+
+.catanatron-original-resource-card { display: none !important; }
+.catanatron-hand-strip {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 25px;
+  max-width: 220px;
+  margin-right: 3px;
+  pointer-events: none;
+}
+.catanatron-hand-card {
+  position: relative;
+  width: 22px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  overflow: hidden;
+  color: #fff;
+  background: linear-gradient(145deg, #44556b, #172335);
+  border: 1px solid rgba(255,255,255,.55);
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0,0,0,.35);
+  font: 900 7px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.catanatron-hand-card img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.catanatron-hand-card.is-resource::after {
+  content: attr(data-mark);
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  padding: 1px 2px;
+  color: #fff;
+  background: rgba(0,0,0,.72);
+  border-radius: 2px;
+  font-size: 5px;
+}
+.catanatron-hand-card.is-brick { background: linear-gradient(145deg, #b75b4b, #6f2f29); }
+.catanatron-hand-card.is-lumber { background: linear-gradient(145deg, #4b9260, #285436); }
+.catanatron-hand-card.is-ore { background: linear-gradient(145deg, #778696, #3c4958); }
+.catanatron-hand-card.is-grain { background: linear-gradient(145deg, #e5bb58, #997226); }
+.catanatron-hand-card.is-wool { background: linear-gradient(145deg, #9bc783, #527844); }
+.catanatron-hand-card.is-unknown { color: rgba(255,255,255,.72); border-color: rgba(255,255,255,.36); }
+.catanatron-hand-card.is-overflow { width: 28px; color: #182131; background: var(--cat-gold, #f5b544); border-color: rgba(0,0,0,.15); }
+.catanatron-hand-zero { padding: 3px 5px; color: rgba(255,255,255,.7); background: rgba(0,0,0,.2); border-radius: 5px; font-size: 7px; }
+
+@media (max-width: 1100px) {
+  #catanatron-intelligence-rail { top: 70px; left: 8px; width: 210px; max-height: 48vh; }
+  .catanatron-hand-strip { max-width: 175px; }
+  .catanatron-hand-card { width: 19px; height: 29px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #catanatron-intelligence-rail * { scroll-behavior: auto; }
+}

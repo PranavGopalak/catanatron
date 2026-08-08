@@ -1,19 +1,24 @@
 # Catanatron Colonist Desktop
 
-A dedicated macOS browser for `https://colonist.io/` with a local Catan utility HUD rendered over the game.
+A dedicated macOS browser for `https://colonist.io/` with local game intelligence rendered directly into Colonist’s live interface.
 
 ## Current milestone
 
-Version 0.2.1 provides:
+Version 0.3.0 provides:
 
 * A persistent, dedicated Electron browser profile for Colonist
 * A temporary, HTTPS-only Apple ID authentication path initiated exclusively by Colonist
 * Strict navigation, popup, download, permission, renderer, and IPC boundaries
-* A movable and collapsible in-game HUD
-* Consent-gated, local WebSocket card counting for an authorized experiment
+* Guaranteed resource cards inserted into each player’s real Colonist hand row
+* Unresolved card backs that preserve the exact observed hand total without inventing identities
+* An always visible left intelligence rail during games, with no dashboard tab switching
+* Consent gated, local WebSocket card counting for an authorized experiment
 * Exact hand totals for every player and exact resource composition for the local player
 * Bounded resource ranges for opponents when individual card identities are hidden
 * Victory point, hidden point risk, development card, event, trade, build, and uncertainty counts
+* Development deck usage and exhausted card tracking
+* Explicit possible and impossible resource states for each player
+* Immediate settlement and city point build risk
 * Automatic new-game detection plus a manual New Game reset
 * A manual turn timer
 * Two-dice probability reference
@@ -49,9 +54,9 @@ npm run start:demo
 
 ## Controls
 
-Drag the HUD by its title bar. Use the minus button to collapse it and the close button to hide it. Press `Command + Shift + H` to show or hide the HUD at any time.
+Outside a live game, use the setup HUD to enable counting, manage the manual timer, view dice odds, and edit local notes. It can be dragged, collapsed, hidden, or restored with `Command + Shift + H`.
 
-Open the Cards tab and select Enable counting before joining or starting a game. The optional Colonist player name improves local-player matching when the protocol roster is incomplete. The Cards tab shows exact hand totals, honest resource ranges, points, development cards, recent events, decoded-frame health, and uncertainty.
+Inside a live game, the setup HUD automatically gets out of the way. Guaranteed known cards and unresolved card backs appear in Colonist’s existing player hand rows. The left intelligence rail remains visible with resource ranges, resources a player cannot have, development card usage, point build risk, trade risk, and recent deductions. If counting is off, the rail offers a direct Enable counting control.
 
 Select New Game to clear the current ledger manually. The settings tab can disable and clear capture, change panel opacity, center the panel, or reset all locally saved HUD data.
 
@@ -73,7 +78,7 @@ The unpacked application is written to `release/`. Packaging enables Electron's 
 
 ## Security model
 
-Colonist is remote and therefore untrusted content from Electron's point of view. The game renderer has Node integration disabled, context isolation and Chromium sandboxing enabled, normal web security preserved, and no general Electron API bridge. The isolated preload owns the HUD and exposes no API to the page.
+Colonist is remote and therefore untrusted content from Electron's point of view. The game renderer has Node integration disabled, context isolation and Chromium sandboxing enabled, normal web security preserved, and no general Electron API bridge. The isolated preload owns the setup HUD and immersive annotations, and exposes no API to the page.
 
 Normal navigation is limited to HTTPS URLs on `colonist.io` and its subdomains. When Colonist starts `/auth/apple` or `/auth-link/apple`, the browser temporarily permits same-window navigation to the exact `appleid.apple.com` host for up to five minutes. The exception closes when navigation returns to Colonist. Other external navigation, popups, downloads, embedded webviews, and browser permission requests are denied. HUD and tracker IPC validate the sender, accept only narrow schemas, and sanitize every persisted value.
 

@@ -14,6 +14,23 @@ const BUILD_COSTS = Object.freeze({
   build_city: { ore: 3, grain: 2 },
   development_card_bought: { ore: 1, grain: 1, wool: 1 },
 });
+const DEV_CARD_LIMITS = Object.freeze({
+  knight: 14,
+  "victory point": 5,
+  "road building": 2,
+  "year of plenty": 2,
+  monopoly: 2,
+});
+const POINT_BUILD_COSTS = Object.freeze([
+  Object.freeze({ label: "city", cost: BUILD_COSTS.build_city }),
+  Object.freeze({ label: "settlement", cost: BUILD_COSTS.build_settlement }),
+]);
+const WINNING_POINTS = 10;
+
+function safeCount(value) {
+  const number = Number(value || 0);
+  return Number.isFinite(number) ? Math.max(0, Math.trunc(number)) : 0;
+}
 
 function emptyResourceCounts() {
   return Object.fromEntries(RESOURCES.map((resource) => [resource, 0]));
@@ -26,6 +43,158 @@ function mapCounts(counts = {}, resourceMap = DEFAULT_RESOURCE_MAP) {
     if (RESOURCES.includes(resource)) mapped[resource] += Number(amount || 0);
   }
   return mapped;
+}
+
+function normalizeDevCardName(value) {
+  const clean = String(value || "")
+    .toLowerCase()
+    .replaceAll("_", " ")
+    .replace(/^development card\s+/, "")
+    .trim();
+  if (clean.includes("monopoly")) return "monopoly";
+  if (clean.includes("year") && clean.includes("plenty")) return "year of plenty";
+  if (clean.includes("road") && clean.includes("building")) return "road building";
+  if (clean.includes("victory") && clean.includes("point")) return "victory point";
+  if (clean.includes("knight")) return "knight";
+  return clean || "unknown";
+}
+
+function buildDevDeckWatch(events = []) {
+  const played = {};
+  let bought = 0;
+  let playedTotal = 0;
+  for (const event of events) {
+    if (event.type === "development_card_bought") bought += 1;
+    if (event.type !== "development_card_played") continue;
+    playedTotal += 1;
+    const name = normalizeDevCardName(event.developmentCard);
+    played[name] = (played[name] || 0) + 1;
+  }
+  const rows = Object.entries(DEV_CARD_LIMITS).map(([name, limit]) => {
+    const used = safeCount(played[name]);
+    return {
+      name,
+      played: used,
+      limit,
+      remaining: Math.max(0, limit - used),
+      exhausted: used >= limit,
+      known: true,
+    };
+  });
+  for (const [name, count] of Object.entries(played)) {
+    if (DEV_CARD_LIMITS[name] !== undefined) continue;
+    rows.push({ name, played: safeCount(count), limit: null, remaining: null, exhausted: false, known: false });
+  }
+  return {
+    bought,
+    playedTotal,
+    hiddenInHands: Math.max(0, bought - playedTotal),
+    rows,
+  };
+}
+
+function canPay(cards, cost) {
+  return Object.entries(cost || {}).every(([resource, amount]) => safeCount(cards?.[resource]) >= amount);
+}
+
+function spend(cards, cost) {
+  const next = { ...cards };
+  for (const [resource, amount] of Object.entries(cost || {})) next[resource] = safeCount(next[resource]) - amount;
+  return next;
+}
+
+function bestPointBuildPlan(cards = {}) {
+  const memo = new Map();
+  function solve(remaining) {
+    const key = RESOURCES.map((resource) => safeCount(remaining[resource])).join(":");
+    if (memo.has(key)) return memo.get(key);
+    let best = { points: 0, builds: [] };
+    for (const option of POINT_BUILD_COSTS) {
+      if (!canPay(remaining, option.cost)) continue;
+      const child = solve(spend(remaining, option.cost));
+      if (child.points + 1 > best.points) best = { points: child.points + 1, builds: [option.label, ...child.builds] };
+    }
+    memo.set(key, best);
+    return best;
+  }
+  return solve(mapCounts(cards));
+}
+
+function decoratePlayerKnowledge(player) {
+  const total = safeCount(player.handTotal ?? player.knownCards);
+  const resourceKnowledge = {};
+  const canHave = [];
+  const cannotHave = [];
+  let guaranteedTotal = 0;
+  for (const resource of RESOURCES) {
+    const source = player.cardRanges?.[resource];
+    const minimum = safeCount(source?.min ?? player.cards?.[resource]);
+    const maximum = Math.max(minimum, safeCount(source?.max ?? minimum));
+    guaranteedTotal += minimum;
+    if (maximum > 0) canHave.push(resource);
+    else cannotHave.push(resource);
+    resourceKnowledge[resource] = {
+      min: minimum,
+      max: maximum,
+      state: maximum === 0 ? "impossible" : minimum === maximum ? "exact" : minimum > 0 ? "guaranteed-plus" : "possible",
+    };
+  }
+  return {
+    ...player,
+    handTotal: total,
+    knownCards: guaranteedTotal,
+    unresolvedCards: Math.max(0, total - guaranteedTotal),
+    resourceKnowledge,
+    canHave,
+    cannotHave,
+  };
+}
+
+function buildWinWatch(players = []) {
+  return players.map((player) => {
+    const plan = bestPointBuildPlan(player.cards);
+    const visiblePoints = safeCount(player.score?.visiblePoints);
+    const hiddenVpRisk = safeCount(player.score?.hiddenVpRisk);
+    const total = visiblePoints + plan.points;
+    const totalWithHidden = total + hiddenVpRisk;
+    const uncertainty = safeCount(player.unresolvedCards ?? player.uncertainty);
+    const status = total >= WINNING_POINTS
+      ? "danger"
+      : uncertainty
+        ? "unknown"
+        : totalWithHidden >= WINNING_POINTS
+          ? "watch"
+          : visiblePoints >= 8 || total >= 9 || totalWithHidden >= 9
+            ? "close"
+            : "stable";
+    return {
+      player: player.name,
+      color: player.color,
+      visiblePoints,
+      buildPoints: plan.points,
+      hiddenVpRisk,
+      total,
+      totalWithHidden,
+      builds: plan.builds,
+      status,
+      uncertainty,
+    };
+  }).sort((a, b) => {
+    const rank = { danger: 0, watch: 1, unknown: 2, close: 3, stable: 4 };
+    return rank[a.status] - rank[b.status] || b.totalWithHidden - a.totalWithHidden || String(a.player).localeCompare(String(b.player));
+  });
+}
+
+function buildTradeWatch(events, winWatch) {
+  const event = events.slice().reverse().find((candidate) => ["trade_offer", "player_trade", "bank_trade"].includes(candidate.type));
+  if (!event) return null;
+  const involved = new Set([event.player, event.otherPlayer].filter(Boolean));
+  const risks = winWatch.filter((item) => involved.has(item.player) && item.status !== "stable");
+  return {
+    line: describeEvent(event),
+    status: risks.some((item) => item.status === "danger") ? "danger" : risks.length ? "watch" : "stable",
+    players: risks.map((item) => item.player),
+  };
 }
 
 function emptyPlayer(name) {
@@ -280,8 +449,11 @@ function emptyCounterState() {
   return {
     players: [],
     hand: null,
+    devDeck: buildDevDeckWatch(),
+    winWatch: [],
+    tradeWatch: null,
     recentEvents: [],
-    counts: { frames: 0, decoded: 0, events: 0, uncertain: 0, rolls: 0, trades: 0, builds: 0 },
+    counts: { frames: 0, decoded: 0, events: 0, uncertain: 0, rolls: 0, trades: 0, builds: 0, devBought: 0, devPlayed: 0 },
     updatedAt: null,
     resetAt: null,
     resetReason: null,
@@ -295,7 +467,7 @@ function buildCounterState(analysis = {}, metadata = {}) {
     analysis.playersByColor || {}
   );
   const players = Object.values(ledger.players)
-    .map((player) => ({
+    .map((player) => decoratePlayerKnowledge({
       ...player,
       cards: { ...player.cards },
       ledger: { ...player.ledger },
@@ -305,9 +477,14 @@ function buildCounterState(analysis = {}, metadata = {}) {
   const byType = countByType(events);
   const handSource = analysis.localHand || analysis.localNonEmptyHand || null;
   const hand = handSource ? { ...handSource, cards: mapCounts(handSource.cards) } : null;
+  const devDeck = buildDevDeckWatch(events);
+  const winWatch = buildWinWatch(players);
   return {
     players,
     hand,
+    devDeck,
+    winWatch,
+    tradeWatch: buildTradeWatch(events, winWatch),
     recentEvents: events.slice(-10).reverse().map((event) => ({ type: event.type, line: describeEvent(event), capturedAt: event.capturedAt || null })),
     counts: {
       frames: Number(metadata.frames || 0),
@@ -317,6 +494,8 @@ function buildCounterState(analysis = {}, metadata = {}) {
       rolls: byType.dice_roll || 0,
       trades: (byType.player_trade || 0) + (byType.bank_trade || 0),
       builds: (byType.build_road || 0) + (byType.build_settlement || 0) + (byType.build_city || 0),
+      devBought: devDeck.bought,
+      devPlayed: devDeck.playedTotal,
     },
     updatedAt: metadata.updatedAt || null,
     resetAt: metadata.resetAt || null,
@@ -327,10 +506,17 @@ function buildCounterState(analysis = {}, metadata = {}) {
 module.exports = {
   BUILD_COSTS,
   DEFAULT_RESOURCE_MAP,
+  DEV_CARD_LIMITS,
   RESOURCES,
+  WINNING_POINTS,
+  bestPointBuildPlan,
   buildCounterState,
+  buildDevDeckWatch,
   buildPublicLedger,
+  buildTradeWatch,
+  buildWinWatch,
   calculateResourceRanges,
+  decoratePlayerKnowledge,
   emptyCounterState,
   mapCounts,
   reconcileWithHands,
