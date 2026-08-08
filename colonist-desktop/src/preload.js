@@ -519,7 +519,7 @@ async function mountHud() {
   }, true);
 
   ipcRenderer.on("browser:navigation-blocked", (_event, details) => {
-    showToast(`Blocked navigation to ${details?.host || "an external site"}. This app only opens Colonist.`);
+    showToast(`Blocked navigation to ${details?.host || "an external site"}. This app only opens Colonist and approved sign in pages.`);
   });
   ipcRenderer.on("tracker:update", (_event, snapshot) => {
     tracker = snapshot || tracker;

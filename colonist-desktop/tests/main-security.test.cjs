@@ -35,5 +35,19 @@ test("session permissions, downloads, popups, and navigation are guarded", () =>
     "tracker:set-enabled",
   ];
   for (const guard of requiredGuards) assert(mainSource.includes(guard), guard);
+  assert.match(
+    mainSource,
+    /setWindowOpenHandler[\s\S]*noteNavigationStarted\(url\)[\s\S]*loadURL\(url\)/,
+    "self-targeted authentication windows must activate policy before programmatic navigation"
+  );
   assert(!mainSource.includes("contextBridge.exposeInMainWorld"), "remote page must not receive an Electron API bridge");
+});
+
+test("loads the first Colonist page before restoring persisted capture", () => {
+  const startBlock = mainSource.match(/const start = async \(\) => \{([\s\S]*?)\n  \};/);
+  assert(startBlock, "startup block should exist");
+  assert(
+    startBlock[1].indexOf("loadURL(COLONIST_HOME)") < startBlock[1].indexOf("webSocketCapture.enable()"),
+    "debugger capture must not stall the initial renderer startup"
+  );
 });

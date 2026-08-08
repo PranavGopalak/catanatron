@@ -7,7 +7,12 @@ const {
   ipcMain,
   session,
 } = require("electron");
-const { COLONIST_HOME, displayHost, isAllowedColonistUrl } = require("./security");
+const {
+  COLONIST_HOME,
+  createNavigationPolicy,
+  displayHost,
+  isAllowedColonistUrl,
+} = require("./security");
 const { HudStateStore } = require("./state-store");
 const { TrackerEngine } = require("./tracker-engine");
 const { createDemoTrackerSnapshot } = require("./tracker-demo");
@@ -63,17 +68,26 @@ function configureSession(targetSession) {
 }
 
 function guardNavigation(webContents) {
-  const blockUnlessColonist = (event, url) => {
-    if (isAllowedColonistUrl(url)) return;
+  const navigationPolicy = createNavigationPolicy();
+  const blockUnlessAllowed = (event, url) => {
+    navigationPolicy.noteNavigationStarted(url);
+    if (navigationPolicy.isAllowed(url)) return;
     event.preventDefault();
     notifyBlockedNavigation(url);
   };
 
-  webContents.on("will-navigate", blockUnlessColonist);
-  webContents.on("will-redirect", blockUnlessColonist);
+  webContents.on("will-navigate", blockUnlessAllowed);
+  webContents.on("will-redirect", blockUnlessAllowed);
+  webContents.on("did-start-navigation", (_event, url, _isInPlace, isMainFrame) => {
+    if (isMainFrame) navigationPolicy.noteNavigationStarted(url);
+  });
+  webContents.on("did-finish-load", () => navigationPolicy.noteNavigationFinished(webContents.getURL()));
   webContents.on("will-attach-webview", (event) => event.preventDefault());
   webContents.setWindowOpenHandler(({ url }) => {
-    if (isAllowedColonistUrl(url)) webContents.loadURL(url);
+    if (isAllowedColonistUrl(url)) {
+      navigationPolicy.noteNavigationStarted(url);
+      webContents.loadURL(url);
+    }
     else notifyBlockedNavigation(url);
     return { action: "deny" };
   });
@@ -134,8 +148,8 @@ function createWindow() {
     mainWindow = null;
   });
   const start = async () => {
-    if (persistedState.trackingEnabled && !DEMO_MODE) await webSocketCapture.enable();
     await mainWindow?.loadURL(COLONIST_HOME);
+    if (persistedState.trackingEnabled && !DEMO_MODE) await webSocketCapture.enable();
   };
   start();
 }

@@ -4,9 +4,10 @@ A dedicated macOS browser for `https://colonist.io/` with a local Catan utility 
 
 ## Current milestone
 
-Version 0.2 provides:
+Version 0.2.1 provides:
 
-* A persistent, single-site Electron browser profile for Colonist
+* A persistent, dedicated Electron browser profile for Colonist
+* A temporary, HTTPS-only Apple ID authentication path initiated exclusively by Colonist
 * Strict navigation, popup, download, permission, renderer, and IPC boundaries
 * A movable and collapsible in-game HUD
 * Consent-gated, local WebSocket card counting for an authorized experiment
@@ -74,7 +75,7 @@ The unpacked application is written to `release/`. Packaging enables Electron's 
 
 Colonist is remote and therefore untrusted content from Electron's point of view. The game renderer has Node integration disabled, context isolation and Chromium sandboxing enabled, normal web security preserved, and no general Electron API bridge. The isolated preload owns the HUD and exposes no API to the page.
 
-Navigation is limited to HTTPS URLs on `colonist.io` and its subdomains. Popups, downloads, embedded webviews, and browser permission requests are denied. HUD and tracker IPC validate the sender, accept only narrow schemas, and sanitize every persisted value.
+Normal navigation is limited to HTTPS URLs on `colonist.io` and its subdomains. When Colonist starts `/auth/apple` or `/auth-link/apple`, the browser temporarily permits same-window navigation to the exact `appleid.apple.com` host for up to five minutes. The exception closes when navigation returns to Colonist. Other external navigation, popups, downloads, embedded webviews, and browser permission requests are denied. HUD and tracker IPC validate the sender, accept only narrow schemas, and sanitize every persisted value.
 
 The WebSocket listener uses Electron's main-process debugger API and sends no API bridge into the remote renderer. Binary frames are bounded in size, text frames are ignored, retained history is capped at 20,000 frames, analysis is throttled, and raw payloads are never sent to the HUD or written to disk.
 
@@ -84,4 +85,4 @@ This integration is intended only for the explicitly authorized experiment repre
 
 ## Authentication note
 
-Email and password login on Colonist can use the persistent app profile. Some third-party identity providers reject embedded browsers by policy. The initial implementation intentionally does not weaken navigation controls to work around that restriction.
+Email, password, and Sign in with Apple can use the persistent app profile. Apple authentication is allowed only when Colonist initiates it, only over HTTPS, and only on `appleid.apple.com`. Other identity providers remain blocked until they receive an equally narrow authentication policy.
