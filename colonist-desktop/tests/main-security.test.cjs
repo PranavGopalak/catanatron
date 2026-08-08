@@ -32,6 +32,8 @@ test("session permissions, downloads, popups, and navigation are guarded", () =>
     "will-attach-webview",
     "setWindowOpenHandler",
     "isTrustedSender",
+    "tracker:set-enabled",
   ];
   for (const guard of requiredGuards) assert(mainSource.includes(guard), guard);
+  assert(!mainSource.includes("contextBridge.exposeInMainWorld"), "remote page must not receive an Electron API bridge");
 });

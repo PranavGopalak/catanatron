@@ -1,16 +1,19 @@
 "use strict";
 
 const MAX_NOTES_LENGTH = 12000;
-const HUD_TABS = new Set(["timer", "odds", "notes", "settings"]);
+const MAX_PLAYER_NAME_LENGTH = 32;
+const HUD_TABS = new Set(["cards", "timer", "odds", "notes", "settings"]);
 
 const DEFAULT_HUD_STATE = Object.freeze({
   version: 1,
-  activeTab: "timer",
+  activeTab: "cards",
   collapsed: false,
   hidden: false,
+  localPlayerName: "",
   notes: "",
   opacity: 0.96,
   position: Object.freeze({ x: null, y: 72 }),
+  trackingEnabled: false,
 });
 
 const DICE_ODDS = Object.freeze(
@@ -41,12 +44,14 @@ function sanitizeHudState(candidate) {
     activeTab: HUD_TABS.has(source.activeTab) ? source.activeTab : DEFAULT_HUD_STATE.activeTab,
     collapsed: source.collapsed === true,
     hidden: source.hidden === true,
+    localPlayerName: typeof source.localPlayerName === "string" ? source.localPlayerName.trim().slice(0, MAX_PLAYER_NAME_LENGTH) : "",
     notes: typeof source.notes === "string" ? source.notes.slice(0, MAX_NOTES_LENGTH) : "",
     opacity,
     position: {
       x: finiteOrNull(position.x),
       y: finiteOrNull(position.y) ?? DEFAULT_HUD_STATE.position.y,
     },
+    trackingEnabled: source.trackingEnabled === true,
   };
 }
 
@@ -61,6 +66,7 @@ module.exports = {
   DEFAULT_HUD_STATE,
   DICE_ODDS,
   MAX_NOTES_LENGTH,
+  MAX_PLAYER_NAME_LENGTH,
   clamp,
   formatDuration,
   sanitizeHudState,

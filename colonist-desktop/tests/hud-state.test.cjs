@@ -15,9 +15,11 @@ test("sanitizes persisted HUD state", () => {
     activeTab: "notes",
     collapsed: true,
     hidden: true,
+    localPlayerName: "Player One",
     notes: "hello",
     opacity: 0.72,
     position: { x: 123.5, y: 45 },
+    trackingEnabled: true,
     untrusted: "discard me",
   });
   assert.deepEqual(state, {
@@ -25,9 +27,11 @@ test("sanitizes persisted HUD state", () => {
     activeTab: "notes",
     collapsed: true,
     hidden: true,
+    localPlayerName: "Player One",
     notes: "hello",
     opacity: 0.72,
     position: { x: 123.5, y: 45 },
+    trackingEnabled: true,
   });
 });
 

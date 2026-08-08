@@ -6,8 +6,12 @@ const esbuild = require("esbuild");
 const root = path.join(__dirname, "..");
 
 esbuild.build({
-  entryPoints: [path.join(root, "src", "preload.js")],
-  outfile: path.join(root, "dist", "preload.cjs"),
+  entryPoints: {
+    main: path.join(root, "src", "main.js"),
+    preload: path.join(root, "src", "preload.js"),
+  },
+  outdir: path.join(root, "dist"),
+  outExtension: { ".js": ".cjs" },
   bundle: true,
   platform: "node",
   format: "cjs",

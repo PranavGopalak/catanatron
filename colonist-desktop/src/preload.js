@@ -11,6 +11,22 @@ const {
 
 const HOST_ID = "catanatron-colonist-hud";
 const SAVE_DELAY_MS = 250;
+const RESOURCE_LABELS = {
+  brick: ["BR", "Brick"],
+  lumber: ["LU", "Lumber"],
+  ore: ["OR", "Ore"],
+  grain: ["GR", "Grain"],
+  wool: ["WO", "Wool"],
+};
+
+function escapeHtml(value) {
+  return String(value == null ? "" : value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
 
 function isColonistPage() {
   const host = location.hostname.toLowerCase();
@@ -25,7 +41,7 @@ function createMarkup() {
           <div class="hud-mark" aria-hidden="true">C</div>
           <div class="hud-title-block">
             <span class="hud-title">Catanatron HUD</span>
-            <span class="hud-subtitle"><span class="hud-status-dot"></span>Local utility layer</span>
+            <span class="hud-subtitle"><span class="hud-status-dot"></span><span data-tracker-subtitle>Counting off</span></span>
           </div>
           <div class="hud-header-actions">
             <button class="hud-icon-button" type="button" data-action="collapse" aria-label="Collapse HUD" title="Collapse HUD">−</button>
@@ -33,19 +49,92 @@ function createMarkup() {
           </div>
         </header>
         <nav class="hud-tabs" role="tablist" aria-label="HUD tools">
+          <button class="hud-tab" type="button" role="tab" data-tab="cards">Cards</button>
           <button class="hud-tab" type="button" role="tab" data-tab="timer">Timer</button>
           <button class="hud-tab" type="button" role="tab" data-tab="odds">Odds</button>
           <button class="hud-tab" type="button" role="tab" data-tab="notes">Notes</button>
           <button class="hud-tab" type="button" role="tab" data-tab="settings">Setup</button>
         </nav>
         <main class="hud-content" role="tabpanel"></main>
-        <footer class="hud-footer">Manual tools only. This HUD does not read game data or perform game actions.</footer>
+        <footer class="hud-footer" data-tracker-footer>Authorized experiment. Counting is off and no game data is being read.</footer>
       </section>
       <button class="hud-launcher" type="button" data-action="show" aria-label="Show Catanatron HUD">
         <span class="hud-launcher-mark" aria-hidden="true">C</span> Show HUD
       </button>
       <div class="hud-toast" role="status" aria-live="polite"></div>
     </div>`;
+}
+
+function resourceGridMarkup(player) {
+  return `<div class="tracker-resources">${Object.entries(RESOURCE_LABELS).map(([resource, [mark, label]]) => {
+    const range = player.cardRanges?.[resource];
+    const minimum = Number(range?.min ?? player.cards?.[resource] ?? 0);
+    const maximum = Number(range?.max ?? minimum);
+    const value = minimum === maximum ? String(minimum) : `${minimum} to ${maximum}`;
+    return `<div class="tracker-resource tracker-${resource}" title="${label}"><span>${mark}</span><strong>${value}</strong></div>`;
+  }).join("")}</div>`;
+}
+
+function playerMarkup(player, localHand) {
+  const isLocal = player.exactHand || (localHand?.player && localHand.player === player.name);
+  const visiblePoints = Number(player.score?.visiblePoints || 0);
+  const hiddenPoints = Number(player.score?.hiddenVictoryPoints || 0);
+  const hiddenRisk = Number(player.score?.hiddenVpRisk ?? hiddenPoints);
+  const vp = hiddenRisk > hiddenPoints ? `${visiblePoints}+${hiddenPoints} to ${hiddenRisk}` : `${visiblePoints + hiddenPoints}`;
+  const total = Number(player.handTotal ?? player.knownCards ?? 0);
+  const identified = Number(player.knownCards || 0);
+  const unknown = Math.max(0, total - identified);
+  const devTotal = Number(player.developmentCards?.total || player.devCardsBought || 0);
+  const countCopy = isLocal
+    ? `${total} cards, exact hand`
+    : `${identified} guaranteed, ${unknown} unresolved, ${total} total`;
+  return `
+    <article class="tracker-player ${isLocal ? "is-local" : ""}">
+      <div class="tracker-player-head">
+        <div class="tracker-player-title">
+          <span class="tracker-color color-${Number(player.color || 0)}" aria-hidden="true"></span>
+          <div><strong>${escapeHtml(player.name || "Unknown player")}</strong><span>${escapeHtml(player.colorLabel || "Color unknown")} · ${countCopy}</span></div>
+        </div>
+        <div class="tracker-player-metrics"><span><strong>${vp}</strong> VP</span><span><strong>${devTotal}</strong> DEV</span></div>
+      </div>
+      ${resourceGridMarkup(player)}
+      ${player.estimateConflict ? `<div class="tracker-warning">Protocol ledger and hand total differ by ${Number(player.estimateConflict)}. Ranges were widened.</div>` : ""}
+    </article>`;
+}
+
+function cardsMarkup(tracker, state) {
+  if (!state.trackingEnabled) {
+    return `
+      <p class="hud-eyebrow">Authorized experiment</p>
+      <h2 class="hud-heading">Live card counting</h2>
+      <p class="hud-description">Use the existing Catanatron decoder to track exact hand totals, your exact cards, and bounded opponent card ranges.</p>
+      <div class="tracker-empty">
+        <strong>Counting is off</strong>
+        <span>No WebSocket frames are being captured.</span>
+        <button class="hud-button primary" type="button" data-action="toggle-tracking">Enable counting</button>
+      </div>`;
+  }
+
+  const capture = tracker.capture || {};
+  const counts = tracker.counts || {};
+  const players = tracker.players || [];
+  const status = capture.lastError ? "Capture error" : capture.attached ? "Listening" : "Starting";
+  const events = (tracker.recentEvents || []).slice(0, 5);
+  return `
+    <div class="tracker-overview">
+      <div><p class="hud-eyebrow">Live game ledger</p><h2 class="hud-heading">${status}</h2></div>
+      <button class="hud-button compact" type="button" data-action="reset-tracker">New game</button>
+    </div>
+    <div class="tracker-stream ${capture.lastError ? "has-error" : ""}">
+      <span><strong>${Number(counts.frames || 0)}</strong> frames</span>
+      <span><strong>${Number(counts.decoded || 0)}</strong> decoded</span>
+      <span><strong>${Number(counts.events || 0)}</strong> events</span>
+      <span><strong>${Number(counts.uncertain || 0)}</strong> unknown</span>
+    </div>
+    ${capture.lastError ? `<div class="tracker-warning">${escapeHtml(capture.lastError)}</div>` : ""}
+    ${players.length ? `<div class="tracker-player-list">${players.map((player) => playerMarkup(player, tracker.hand)).join("")}</div>` : `
+      <div class="tracker-empty waiting"><strong>Waiting for game state</strong><span>Join or start a game after counting is enabled. The first complete state frame will populate every player.</span></div>`}
+    ${events.length ? `<div class="tracker-events"><span class="tracker-section-label">Recent game events</span>${events.map((event) => `<div><span>${escapeHtml(event.type || "update")}</span><p>${escapeHtml(event.line)}</p></div>`).join("")}</div>` : ""}`;
 }
 
 function timerMarkup(elapsed, running) {
@@ -90,13 +179,24 @@ function notesMarkup(notes) {
     <div class="hud-save-status" data-save-status>${notes ? "Saved locally" : "Ready"}</div>`;
 }
 
-function settingsMarkup(opacity, awaitingReset) {
+function settingsMarkup(state, tracker, awaitingReset) {
+  const capture = tracker.capture || {};
   return `
     <p class="hud-eyebrow">HUD preferences</p>
     <h2 class="hud-heading">Display setup</h2>
+    <div class="hud-setting tracker-consent">
+      <div class="hud-setting-head"><span>Authorized card counting</span><span class="hud-setting-value">${state.trackingEnabled ? capture.attached ? "LIVE" : "STARTING" : "OFF"}</span></div>
+      <p class="hud-description">Captures Colonist binary WebSocket frames locally and converts them into card totals and uncertainty ranges. It never performs game actions.</p>
+      <label class="hud-field-label" for="catanatron-player-name">Your Colonist name</label>
+      <input id="catanatron-player-name" class="hud-text-input" type="text" maxlength="32" data-setting="player-name" placeholder="Optional, improves local-player matching" value="${escapeHtml(state.localPlayerName)}">
+      <div class="hud-button-row">
+        <button class="hud-button ${state.trackingEnabled ? "danger" : "primary"}" type="button" data-action="toggle-tracking">${state.trackingEnabled ? "Disable counting" : "Enable counting"}</button>
+        <button class="hud-button" type="button" data-action="reset-tracker" ${state.trackingEnabled ? "" : "disabled"}>New game</button>
+      </div>
+    </div>
     <div class="hud-setting">
-      <div class="hud-setting-head"><span>Panel opacity</span><span class="hud-setting-value" data-opacity-value>${Math.round(opacity * 100)}%</span></div>
-      <input class="hud-range" type="range" min="55" max="100" step="1" value="${Math.round(opacity * 100)}" data-setting="opacity" aria-label="Panel opacity">
+      <div class="hud-setting-head"><span>Panel opacity</span><span class="hud-setting-value" data-opacity-value>${Math.round(state.opacity * 100)}%</span></div>
+      <input class="hud-range" type="range" min="55" max="100" step="1" value="${Math.round(state.opacity * 100)}" data-setting="opacity" aria-label="Panel opacity">
     </div>
     <div class="hud-setting">
       <div class="hud-setting-head"><span>Show or hide shortcut</span></div>
@@ -104,7 +204,7 @@ function settingsMarkup(opacity, awaitingReset) {
     </div>
     <div class="hud-setting">
       <div class="hud-setting-head"><span>Local HUD data</span></div>
-      <p class="hud-description">Reset notes, position, visibility, and display preferences.</p>
+      <p class="hud-description">Reset notes, counting consent, position, visibility, and display preferences.</p>
       <div class="hud-button-row">
         <button class="hud-button danger" type="button" data-action="reset-state">${awaitingReset ? "Confirm reset" : "Reset HUD data"}</button>
         <button class="hud-button" type="button" data-action="center-panel">Center panel</button>
@@ -121,6 +221,14 @@ async function mountHud() {
   } catch (_error) {
     state = sanitizeHudState(null);
   }
+  let tracker = {
+    enabled: state.trackingEnabled,
+    capture: { enabled: state.trackingEnabled, attached: false, framesCaptured: 0, droppedFrames: 0, lastError: null },
+    players: [],
+    hand: null,
+    recentEvents: [],
+    counts: {},
+  };
 
   const host = document.createElement("div");
   host.id = HOST_ID;
@@ -137,6 +245,9 @@ async function mountHud() {
   const content = shadow.querySelector(".hud-content");
   const toast = shadow.querySelector(".hud-toast");
   const collapseButton = shadow.querySelector('[data-action="collapse"]');
+  const trackerSubtitle = shadow.querySelector("[data-tracker-subtitle]");
+  const trackerFooter = shadow.querySelector("[data-tracker-footer]");
+  const trackerStatusDot = shadow.querySelector(".hud-status-dot");
 
   let saveTimer = null;
   let toastTimer = null;
@@ -193,17 +304,32 @@ async function mountHud() {
     toastTimer = setTimeout(() => toast.classList.remove("is-visible"), 4200);
   }
 
+  function applyTrackerChrome() {
+    const capture = tracker.capture || {};
+    trackerStatusDot.classList.toggle("is-off", !state.trackingEnabled);
+    trackerStatusDot.classList.toggle("is-error", Boolean(capture.lastError));
+    if (!state.trackingEnabled) trackerSubtitle.textContent = "Counting off";
+    else if (capture.lastError) trackerSubtitle.textContent = "Capture error";
+    else if (capture.attached) trackerSubtitle.textContent = `${Number(tracker.counts?.frames || 0)} frames captured`;
+    else trackerSubtitle.textContent = "Starting capture";
+    trackerFooter.textContent = state.trackingEnabled
+      ? "Authorized experiment. Local counting only. No automated game actions."
+      : "Authorized experiment. Counting is off and no game data is being read.";
+  }
+
   function renderContent() {
     shadow.querySelectorAll(".hud-tab").forEach((tab) => {
       tab.setAttribute("aria-selected", String(tab.dataset.tab === state.activeTab));
     });
+    if (state.activeTab === "cards") content.innerHTML = cardsMarkup(tracker, state);
     if (state.activeTab === "timer") content.innerHTML = timerMarkup(currentElapsed(), startedAt !== null);
     if (state.activeTab === "odds") content.innerHTML = oddsMarkup();
     if (state.activeTab === "notes") {
       content.innerHTML = notesMarkup(state.notes);
       content.querySelector(".hud-notes").value = state.notes;
     }
-    if (state.activeTab === "settings") content.innerHTML = settingsMarkup(state.opacity, awaitingReset);
+    if (state.activeTab === "settings") content.innerHTML = settingsMarkup(state, tracker, awaitingReset);
+    applyTrackerChrome();
   }
 
   function updateTimerDisplay() {
@@ -261,6 +387,28 @@ async function mountHud() {
     if (action === "timer-toggle") setTimerRunning(startedAt === null);
     if (action === "timer-new") resetTimer(true);
     if (action === "timer-reset") resetTimer(false);
+    if (action === "toggle-tracking") {
+      state.trackingEnabled = !state.trackingEnabled;
+      renderContent();
+      scheduleSave();
+      try {
+        tracker = await ipcRenderer.invoke("tracker:set-enabled", {
+          enabled: state.trackingEnabled,
+          localPlayerName: state.localPlayerName,
+        });
+        renderContent();
+        showToast(state.trackingEnabled ? "Card counting enabled" : "Card counting disabled and cleared");
+      } catch (_error) {
+        state.trackingEnabled = false;
+        renderContent();
+        showToast("Card counting could not be started");
+      }
+    }
+    if (action === "reset-tracker") {
+      tracker = await ipcRenderer.invoke("tracker:reset");
+      renderContent();
+      showToast("Card counts reset for a new game");
+    }
     if (action === "center-panel") {
       const rect = panel.getBoundingClientRect();
       state.position = {
@@ -282,6 +430,14 @@ async function mountHud() {
         return;
       }
       state = sanitizeHudState(await ipcRenderer.invoke("hud:reset"));
+      tracker = {
+        enabled: false,
+        capture: { enabled: false, attached: false, framesCaptured: 0, droppedFrames: 0, lastError: null },
+        players: [],
+        hand: null,
+        recentEvents: [],
+        counts: {},
+      };
       awaitingReset = false;
       applyShellState();
       renderContent();
@@ -302,6 +458,23 @@ async function mountHud() {
       const value = shadow.querySelector("[data-opacity-value]");
       if (value) value.textContent = `${Math.round(state.opacity * 100)}%`;
       scheduleSave();
+    }
+    if (event.target.matches('[data-setting="player-name"]')) {
+      state.localPlayerName = event.target.value.trim().slice(0, 32);
+      scheduleSave();
+    }
+  });
+
+  shadow.addEventListener("change", async (event) => {
+    if (!event.target.matches('[data-setting="player-name"]')) return;
+    try {
+      tracker = await ipcRenderer.invoke("tracker:set-enabled", {
+        enabled: state.trackingEnabled,
+        localPlayerName: state.localPlayerName,
+      });
+      renderContent();
+    } catch (_error) {
+      showToast("Player name could not be updated");
     }
   });
 
@@ -348,6 +521,11 @@ async function mountHud() {
   ipcRenderer.on("browser:navigation-blocked", (_event, details) => {
     showToast(`Blocked navigation to ${details?.host || "an external site"}. This app only opens Colonist.`);
   });
+  ipcRenderer.on("tracker:update", (_event, snapshot) => {
+    tracker = snapshot || tracker;
+    if (state.activeTab === "cards" || state.activeTab === "settings") renderContent();
+    else applyTrackerChrome();
+  });
 
   const attachmentObserver = new MutationObserver(() => {
     if (!document.documentElement.contains(host)) document.documentElement.appendChild(host);
@@ -356,6 +534,15 @@ async function mountHud() {
 
   applyShellState();
   renderContent();
+  try {
+    tracker = await ipcRenderer.invoke("tracker:set-enabled", {
+      enabled: state.trackingEnabled,
+      localPlayerName: state.localPlayerName,
+    });
+    renderContent();
+  } catch (_error) {
+    showToast("Card counter initialization failed");
+  }
 }
 
 if (document.readyState === "loading") {
