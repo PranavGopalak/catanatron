@@ -13,10 +13,9 @@ const {
 } = require("./immersive-model");
 
 const STYLE_ID = "catanatron-immersive-styles";
-const RAIL_ID = "catanatron-intelligence-rail";
+const PANEL_ID = "catanatron-native-intelligence";
 const ROW_SELECTOR = '[class*="playerRow"][data-player-color]';
 const RESOURCE_CARD_SELECTOR = '[data-resource-card="true"]';
-const FALLBACK_DOCK_ID = "catanatron-intelligence-dock";
 
 function escapeHtml(value) {
   return String(value == null ? "" : value)
@@ -53,7 +52,7 @@ function handGroupMarkup(group, resourceImages, backImage) {
   }
   const config = RESOURCE_UI[group.resource];
   const image = resourceImages[group.resource];
-  return `<span class="catanatron-hand-card is-resource is-${group.resource}" data-mark="${config.mark}" title="${group.count} guaranteed ${config.label}">${image ? `<img src="${escapeHtml(image)}" alt="">` : config.mark}<strong class="catanatron-card-count">${group.count}</strong></span>`;
+  return `<span class="catanatron-hand-card is-resource is-${group.resource}" data-mark="${config.mark}" title="${group.count} guaranteed ${config.label} ${group.count === 1 ? "card" : "cards"}">${image ? `<img src="${escapeHtml(image)}" alt="">` : config.mark}<strong class="catanatron-card-count">${group.count}</strong></span>`;
 }
 
 function rangeMarkup(player) {
@@ -73,7 +72,7 @@ function rangeMarkup(player) {
 function devDeckMarkup(devDeck) {
   const deck = devDeck || { bought: 0, playedTotal: 0, hiddenInHands: 0, rows: [] };
   return `
-    <section class="catanatron-rail-section">
+    <section class="catanatron-native-section">
       <div class="catanatron-section-title">Development deck <span>${count(deck.hiddenInHands)} hidden</span></div>
       <div class="catanatron-dev-summary">
         <div><strong>${count(deck.bought)}</strong><span>bought</span></div>
@@ -87,7 +86,7 @@ function devDeckMarkup(devDeck) {
 function playerIntelMarkup(players, winWatch) {
   const riskByPlayer = new Map((winWatch || []).map((item) => [`${Number(item.color)}:${normalizePlayerName(item.player)}`, item]));
   return `
-    <section class="catanatron-rail-section">
+    <section class="catanatron-native-section">
       <div class="catanatron-section-title">Player intelligence <span>${players.length} players</span></div>
       ${players.length ? players.map((player) => {
         const total = count(player.handTotal ?? player.knownCards);
@@ -108,8 +107,8 @@ function playerIntelMarkup(players, winWatch) {
 
 function eventsMarkup(events, tradeWatch) {
   return `
-    ${tradeWatch ? `<section class="catanatron-rail-section"><div class="catanatron-section-title">Trade risk <span class="catanatron-risk-${escapeHtml(tradeWatch.status)}">${escapeHtml(tradeWatch.status)}</span></div><div class="catanatron-event">${escapeHtml(tradeWatch.line)}</div></section>` : ""}
-    <section class="catanatron-rail-section">
+    ${tradeWatch ? `<section class="catanatron-native-section"><div class="catanatron-section-title">Trade risk <span class="catanatron-risk-${escapeHtml(tradeWatch.status)}">${escapeHtml(tradeWatch.status)}</span></div><div class="catanatron-event">${escapeHtml(tradeWatch.line)}</div></section>` : ""}
+    <section class="catanatron-native-section">
       <div class="catanatron-section-title">Recent deductions</div>
       ${(events || []).length ? events.slice(0, 4).map((event) => `<div class="catanatron-event">${escapeHtml(event.line || event.type || "Game update")}</div>`).join("") : `<p class="catanatron-empty">Live deductions will appear here as public game events are decoded.</p>`}
     </section>`;
@@ -168,29 +167,42 @@ class ImmersiveGameUI {
     node.setAttribute("aria-hidden", "true");
   }
 
-  ensureDock() {
+  ensureNativePanel() {
     document.documentElement.classList.add("catanatron-game-immersive");
-    let dock = document.getElementById("in_game_ad_left");
-    if (!dock) {
-      dock = document.getElementById(FALLBACK_DOCK_ID);
-      if (!dock) {
-        dock = document.createElement("div");
-        dock.id = FALLBACK_DOCK_ID;
-        document.querySelector("#ui-game")?.appendChild(dock);
-      }
-    }
-    dock.classList.add("catanatron-intelligence-dock");
-    const stageLeft = document.querySelector("#ui-game")?.getBoundingClientRect().left || 0;
-    const dockWidth = stageLeft >= 120 ? Math.round(stageLeft) : Math.min(165, Math.round(window.innerWidth * 0.2));
-    dock.style.setProperty("--cat-dock-width", `${dockWidth}px`);
-    this.rememberAndSetDisplay(dock, "block");
-    for (const child of dock.children) {
-      if (child.id !== RAIL_ID) this.rememberAndSetDisplay(child, "none");
-    }
+    const game = document.querySelector("#ui-game");
+    if (!game) return null;
+    this.rememberAndSetDisplay(document.getElementById("in_game_ad_left"), "none");
     this.rememberAndSetDisplay(document.getElementById("in_game_ad_right"), "none");
     this.rememberAndSetDisplay(document.getElementById("in_game_ad_bottom"), "none");
     this.rememberAndSetDisplay(document.getElementById("in_game_ad_bottom_small"), "none");
-    return dock;
+    let panel = document.getElementById(PANEL_ID);
+    if (!panel) {
+      panel = document.createElement("aside");
+      panel.id = PANEL_ID;
+      panel.setAttribute("role", "complementary");
+      panel.setAttribute("aria-label", "Catanatron live game intelligence");
+      panel.addEventListener("click", async (event) => {
+        const button = event.target.closest("button[data-catanatron-action]");
+        if (!button) return;
+        button.disabled = true;
+        try {
+          if (button.dataset.catanatronAction === "toggle-tracking") await this.onToggleTracking?.();
+          if (button.dataset.catanatronAction === "reset-tracker") await this.onResetTracker?.();
+        } finally {
+          button.disabled = false;
+        }
+      });
+    }
+    if (panel.parentElement !== game) game.appendChild(panel);
+    const stageLeft = game.getBoundingClientRect().left || 0;
+    const panelWidth = stageLeft >= 120 ? Math.round(stageLeft) : Math.min(165, Math.max(132, Math.round(window.innerWidth * 0.18)));
+    panel.style.setProperty("--cat-native-width", `${panelWidth}px`);
+    const nativeReference = document.querySelector('[data-player-information-container="true"]');
+    if (nativeReference) {
+      const computed = getComputedStyle(nativeReference);
+      panel.style.setProperty("--cat-native-font", computed.fontFamily || "inherit");
+    }
+    return panel;
   }
 
   restoreAds() {
@@ -202,10 +214,6 @@ class ImmersiveGameUI {
     }
     this.trimmedNodes.clear();
     document.documentElement.classList.remove("catanatron-game-immersive");
-    const dock = document.querySelector(".catanatron-intelligence-dock");
-    dock?.classList.remove("catanatron-intelligence-dock");
-    dock?.style.removeProperty("--cat-dock-width");
-    document.getElementById(FALLBACK_DOCK_ID)?.remove();
   }
 
   setActive(active) {
@@ -223,46 +231,27 @@ class ImmersiveGameUI {
       return;
     }
     this.ensureStyles();
-    const dock = this.ensureDock();
-    this.renderRail(dock);
+    const panel = this.ensureNativePanel();
+    if (!panel) return;
+    this.renderPanel(panel);
     this.renderHands();
   }
 
-  renderRail(dock) {
-    let rail = document.getElementById(RAIL_ID);
-    if (!rail) {
-      rail = document.createElement("aside");
-      rail.id = RAIL_ID;
-      rail.setAttribute("role", "complementary");
-      rail.setAttribute("aria-label", "Catanatron live game intelligence");
-      rail.addEventListener("click", async (event) => {
-        const button = event.target.closest("button[data-catanatron-action]");
-        if (!button) return;
-        button.disabled = true;
-        try {
-          if (button.dataset.catanatronAction === "toggle-tracking") await this.onToggleTracking?.();
-          if (button.dataset.catanatronAction === "reset-tracker") await this.onResetTracker?.();
-        } finally {
-          button.disabled = false;
-        }
-      });
-      dock.appendChild(rail);
-    }
-    if (rail.parentElement !== dock) dock.appendChild(rail);
+  renderPanel(panel) {
     const capture = this.tracker.capture || {};
     const enabled = Boolean(this.state.trackingEnabled);
     const status = !enabled ? "Counting off" : capture.lastError ? "Capture error" : capture.attached ? `${count(this.tracker.counts?.frames)} frames` : "Starting capture";
     const digest = JSON.stringify({ enabled, status, tracker: this.tracker });
-    if (rail.dataset.digest === digest) return;
-    rail.dataset.digest = digest;
-    rail.innerHTML = `
-      <header class="catanatron-rail-header">
-        <span class="catanatron-rail-mark">C</span>
-        <div class="catanatron-rail-title"><strong>Game Intelligence</strong><span>${escapeHtml(status)} · local only</span></div>
+    if (panel.dataset.digest === digest) return;
+    panel.dataset.digest = digest;
+    panel.innerHTML = `
+      <header class="catanatron-native-header">
+        <span class="catanatron-native-mark">C</span>
+        <div class="catanatron-native-title"><strong>Card tracker</strong><span>${escapeHtml(status)} · local only</span></div>
         <span class="catanatron-live-dot ${!enabled ? "is-off" : capture.lastError ? "is-error" : ""}"></span>
       </header>
-      <div class="catanatron-rail-actions">
-        ${enabled ? `<button class="catanatron-rail-button secondary" type="button" data-catanatron-action="reset-tracker">New game</button>` : `<button class="catanatron-rail-button" type="button" data-catanatron-action="toggle-tracking">Enable counting</button>`}
+      <div class="catanatron-native-actions">
+        ${enabled ? `<button class="catanatron-native-button secondary" type="button" data-catanatron-action="reset-tracker">New game</button>` : `<button class="catanatron-native-button" type="button" data-catanatron-action="toggle-tracking">Enable counting</button>`}
       </div>
       ${devDeckMarkup(this.tracker.devDeck)}
       ${playerIntelMarkup(this.tracker.players || [], this.tracker.winWatch)}
@@ -306,7 +295,7 @@ class ImmersiveGameUI {
   }
 
   removeGameUI() {
-    document.getElementById(RAIL_ID)?.remove();
+    document.getElementById(PANEL_ID)?.remove();
     for (const original of document.querySelectorAll(".catanatron-original-resource-card")) original.classList.remove("catanatron-original-resource-card");
     for (const strip of document.querySelectorAll(".catanatron-hand-strip")) strip.remove();
     this.restoreAds();

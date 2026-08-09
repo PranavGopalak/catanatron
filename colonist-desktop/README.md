@@ -4,18 +4,19 @@ A dedicated macOS browser for `https://colonist.io/` with local game intelligenc
 
 ## Current milestone
 
-Version 0.3.1 provides:
+Version 0.4.0 provides:
 
 * A persistent, dedicated Electron browser profile for Colonist
 * A temporary, HTTPS-only Apple ID authentication path initiated exclusively by Colonist
 * Strict navigation, popup, download, permission, renderer, and IPC boundaries
 * Guaranteed resource cards inserted into each player’s real Colonist hand row
 * One compact card per known resource type, plus one unresolved card back, each with a count badge
-* A responsive intelligence rail embedded in Colonist’s left game dock
+* A Colonist styled intelligence panel mounted directly inside the live game DOM
 * Side and compact bottom advertisements removed from the game view
 * Consent gated, local WebSocket card counting for an authorized experiment
 * Exact hand totals for every player and exact resource composition for the local player
 * Bounded resource ranges for opponents when individual card identities are hidden
+* An exact dynamic resource range solver cross checked against brute force reference states
 * Victory point, hidden point risk, development card, event, trade, build, and uncertainty counts
 * Development deck usage and exhausted card tracking
 * Explicit possible and impossible resource states for each player
@@ -57,7 +58,7 @@ npm run start:demo
 
 Outside a live game, use the setup HUD to enable counting, manage the manual timer, view dice odds, and edit local notes. It can be dragged, collapsed, hidden, or restored with `Command + Shift + H`.
 
-Inside a live game, the setup HUD automatically gets out of the way. Known resources are grouped by type in Colonist’s existing player hand rows, with a count badge on every card. Any unresolved resources use one card back with their remaining count. The responsive intelligence rail replaces the left advertising column, while the remaining in game advertising containers are hidden. The rail remains visible with resource ranges, resources a player cannot have, development card usage, point build risk, trade risk, and recent deductions. If counting is off, the rail offers a direct Enable counting control.
+Inside a live game, the setup HUD automatically gets out of the way. Known resources are grouped by type in Colonist’s existing player hand rows, with a count badge on every card. Any unresolved resources use one card back with their remaining count. A Colonist styled cream and blue intelligence panel is mounted as a child of the game itself and occupies the reserved left column, while the in game advertising containers are hidden. The panel remains visible with resource ranges, resources a player cannot have, development card usage, point build risk, trade risk, and recent deductions. If counting is off, the panel offers a direct Enable counting control.
 
 Select New Game to clear the current ledger manually. The settings tab can disable and clear capture, change panel opacity, center the panel, or reset all locally saved HUD data.
 

@@ -40,7 +40,7 @@ function mapCounts(counts = {}, resourceMap = DEFAULT_RESOURCE_MAP) {
   const mapped = emptyResourceCounts();
   for (const [card, amount] of Object.entries(counts || {})) {
     const resource = resourceMap[card] || card;
-    if (RESOURCES.includes(resource)) mapped[resource] += Number(amount || 0);
+    if (RESOURCES.includes(resource)) mapped[resource] += safeCount(amount);
   }
   return mapped;
 }
@@ -238,7 +238,7 @@ function addCounts(player, counts, multiplier) {
 
 function addHiddenCard(player, event) {
   if (!player) return;
-  const count = Math.max(1, Number(event.hiddenCount || 1));
+  const count = Math.max(1, safeCount(event.hiddenCount || 1));
   for (let index = 0; index < count; index += 1) {
     player.hiddenCards.push({
       id: `hidden-${event.messageSequence || event.frameSequence || event.logId || "event"}-${index}`,
@@ -311,7 +311,7 @@ function buildPublicLedger(events = []) {
       }
     } else if (BUILD_COSTS[event.type]) {
       state.trackableEvents += 1;
-      const isFreeProtocolBuild = event.type.startsWith("build_") && event.raw?.type !== 5;
+      const isFreeProtocolBuild = event.type.startsWith("build_") && event.raw?.type === 4;
       if (!isFreeProtocolBuild) subtractBuildCost(player, event);
       if (event.type === "development_card_bought" && player) player.devCardsBought += 1;
     } else if (event.type === "development_card_played") {
@@ -324,50 +324,83 @@ function buildPublicLedger(events = []) {
 }
 
 function calculateResourceRanges(player, handTotal) {
-  const ledger = RESOURCES.map((resource) => Math.trunc(Number(player.ledger?.[resource] || 0)));
-  let hiddenGains = player.hiddenCards.filter((card) => !card.resolvedAs).length;
-  let hiddenLosses = Math.max(0, Math.trunc(Number(player.otherUncertainty || 0)));
+  const total = safeCount(handTotal);
+  const ledger = RESOURCES.map((resource) => {
+    const amount = Number(player.ledger?.[resource] || 0);
+    return Number.isFinite(amount) ? Math.trunc(amount) : 0;
+  });
+  let hiddenGains = (player.hiddenCards || []).filter((card) => !card.resolvedAs).length;
+  let hiddenLosses = safeCount(player.otherUncertainty);
   const expectedTotal = ledger.reduce((sum, amount) => sum + amount, 0) + hiddenGains - hiddenLosses;
-  const drift = handTotal - expectedTotal;
+  const drift = total - expectedTotal;
   if (drift > 0) hiddenGains += drift;
   if (drift < 0) hiddenLosses += -drift;
 
-  const minimums = Array(RESOURCES.length).fill(Infinity);
-  const maximums = Array(RESOURCES.length).fill(0);
-  const candidate = Array(RESOURCES.length).fill(0);
-  let feasibleCount = 0;
+  let states = new Map();
+  states.set("0:0:0", {
+    total: 0,
+    gains: 0,
+    losses: 0,
+    minimums: Array(RESOURCES.length).fill(Infinity),
+    maximums: Array(RESOURCES.length).fill(-Infinity),
+    ways: 1,
+  });
 
-  function visit(index, remaining) {
-    if (index === RESOURCES.length - 1) {
-      candidate[index] = remaining;
-      let requiredGains = 0;
-      let requiredLosses = 0;
-      for (let cardIndex = 0; cardIndex < RESOURCES.length; cardIndex += 1) {
-        const delta = candidate[cardIndex] - ledger[cardIndex];
-        if (delta > 0) requiredGains += delta;
-        if (delta < 0) requiredLosses -= delta;
+  for (let resourceIndex = 0; resourceIndex < RESOURCES.length; resourceIndex += 1) {
+    const nextStates = new Map();
+    for (const state of states.values()) {
+      for (let amount = 0; amount <= total - state.total; amount += 1) {
+        const delta = amount - ledger[resourceIndex];
+        const gains = state.gains + Math.max(0, delta);
+        const losses = state.losses + Math.max(0, -delta);
+        if (gains > hiddenGains || losses > hiddenLosses) continue;
+        const nextTotal = state.total + amount;
+        const key = `${nextTotal}:${gains}:${losses}`;
+        const existing = nextStates.get(key);
+        if (!existing) {
+          const minimums = state.minimums.slice();
+          const maximums = state.maximums.slice();
+          minimums[resourceIndex] = amount;
+          maximums[resourceIndex] = amount;
+          nextStates.set(key, {
+            total: nextTotal,
+            gains,
+            losses,
+            minimums,
+            maximums,
+            ways: state.ways,
+          });
+          continue;
+        }
+        for (let index = 0; index < resourceIndex; index += 1) {
+          existing.minimums[index] = Math.min(existing.minimums[index], state.minimums[index]);
+          existing.maximums[index] = Math.max(existing.maximums[index], state.maximums[index]);
+        }
+        existing.minimums[resourceIndex] = Math.min(existing.minimums[resourceIndex], amount);
+        existing.maximums[resourceIndex] = Math.max(existing.maximums[resourceIndex], amount);
+        existing.ways = Math.min(Number.MAX_SAFE_INTEGER, existing.ways + state.ways);
       }
-      if (requiredGains > hiddenGains || requiredLosses > hiddenLosses) return;
-      if (hiddenGains - requiredGains !== hiddenLosses - requiredLosses) return;
-      feasibleCount += 1;
-      for (let cardIndex = 0; cardIndex < RESOURCES.length; cardIndex += 1) {
-        minimums[cardIndex] = Math.min(minimums[cardIndex], candidate[cardIndex]);
-        maximums[cardIndex] = Math.max(maximums[cardIndex], candidate[cardIndex]);
-      }
-      return;
     }
-    for (let amount = 0; amount <= remaining; amount += 1) {
-      candidate[index] = amount;
-      visit(index + 1, remaining - amount);
-    }
+    states = nextStates;
   }
 
-  visit(0, Math.max(0, handTotal));
+  const minimums = Array(RESOURCES.length).fill(Infinity);
+  const maximums = Array(RESOURCES.length).fill(0);
+  let feasibleCount = 0;
+  for (const state of states.values()) {
+    if (state.total !== total) continue;
+    if (hiddenGains - state.gains !== hiddenLosses - state.losses) continue;
+    feasibleCount = Math.min(Number.MAX_SAFE_INTEGER, feasibleCount + state.ways);
+    for (let index = 0; index < RESOURCES.length; index += 1) {
+      minimums[index] = Math.min(minimums[index], state.minimums[index]);
+      maximums[index] = Math.max(maximums[index], state.maximums[index]);
+    }
+  }
   const ranges = {};
   for (let index = 0; index < RESOURCES.length; index += 1) {
     ranges[RESOURCES[index]] = feasibleCount
       ? { min: minimums[index], max: maximums[index] }
-      : { min: 0, max: Math.max(0, handTotal) };
+      : { min: 0, max: total };
   }
   return { ranges, feasibleCount, drift };
 }
@@ -378,7 +411,7 @@ function reconcileWithHands(state, hands = {}) {
     if (!player) continue;
     player.color = Number(hand.color);
     player.colorLabel = hand.colorLabel || `Color ${hand.color}`;
-    player.handTotal = Math.max(0, Number(hand.total || 0));
+    player.handTotal = safeCount(hand.total);
     player.snapshotAt = hand.capturedAt || null;
     if (hand.compositionKnown) {
       const exact = mapCounts(hand.cards);

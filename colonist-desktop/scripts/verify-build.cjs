@@ -12,10 +12,11 @@ const mainOutput = fs.readFileSync(mainOutputPath, "utf8");
 
 assert(output.length > 15000, "bundled preload should contain the complete HUD");
 assert(output.includes("Catanatron HUD"), "bundled preload should contain the HUD markup");
-assert(output.includes("catanatron-intelligence-rail"), "bundled preload should contain the immersive intelligence rail");
+assert(output.includes("catanatron-native-intelligence"), "bundled preload should contain the native in-game intelligence panel");
 assert(output.includes("catanatron-hand-strip"), "bundled preload should contain inline hand annotations");
 assert(output.includes("catanatron-card-count"), "bundled preload should group repeated cards with count badges");
-assert(output.includes("in_game_ad_left"), "bundled preload should embed the rail in Colonist's left game dock");
+assert(output.includes("game.appendChild(panel)"), "bundled preload should mount the intelligence panel inside Colonist's game DOM");
+assert(output.includes("in_game_ad_left"), "bundled preload should suppress the left side advertisement");
 assert(output.includes("in_game_ad_right"), "bundled preload should suppress the right side advertisement");
 assert(output.includes("in_game_ad_bottom_small"), "bundled preload should suppress compact in-game advertisements");
 assert(output.includes("Cannot have:"), "bundled preload should expose impossible resource deductions");

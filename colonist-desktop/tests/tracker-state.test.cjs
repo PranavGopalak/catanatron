@@ -5,10 +5,62 @@ const assert = require("node:assert/strict");
 const {
   buildCounterState,
   buildDevDeckWatch,
+  buildPublicLedger,
   buildWinWatch,
   calculateResourceRanges,
   decoratePlayerKnowledge,
+  mapCounts,
 } = require("../src/tracker-state");
+
+const RESOURCES = ["brick", "lumber", "ore", "grain", "wool"];
+
+function bruteForceRanges(player, handTotal) {
+  const ledger = RESOURCES.map((resource) => Math.trunc(Number(player.ledger?.[resource] || 0)));
+  let hiddenGains = (player.hiddenCards || []).filter((card) => !card.resolvedAs).length;
+  let hiddenLosses = Math.max(0, Math.trunc(Number(player.otherUncertainty || 0)));
+  const expectedTotal = ledger.reduce((sum, amount) => sum + amount, 0) + hiddenGains - hiddenLosses;
+  const drift = handTotal - expectedTotal;
+  if (drift > 0) hiddenGains += drift;
+  if (drift < 0) hiddenLosses += -drift;
+  const minimums = Array(RESOURCES.length).fill(Infinity);
+  const maximums = Array(RESOURCES.length).fill(0);
+  const candidate = Array(RESOURCES.length).fill(0);
+  let feasibleCount = 0;
+
+  function visit(index, remaining) {
+    if (index === RESOURCES.length - 1) {
+      candidate[index] = remaining;
+      let gains = 0;
+      let losses = 0;
+      for (let cardIndex = 0; cardIndex < RESOURCES.length; cardIndex += 1) {
+        const delta = candidate[cardIndex] - ledger[cardIndex];
+        gains += Math.max(0, delta);
+        losses += Math.max(0, -delta);
+      }
+      if (gains > hiddenGains || losses > hiddenLosses) return;
+      if (hiddenGains - gains !== hiddenLosses - losses) return;
+      feasibleCount += 1;
+      for (let cardIndex = 0; cardIndex < RESOURCES.length; cardIndex += 1) {
+        minimums[cardIndex] = Math.min(minimums[cardIndex], candidate[cardIndex]);
+        maximums[cardIndex] = Math.max(maximums[cardIndex], candidate[cardIndex]);
+      }
+      return;
+    }
+    for (let amount = 0; amount <= remaining; amount += 1) {
+      candidate[index] = amount;
+      visit(index + 1, remaining - amount);
+    }
+  }
+
+  visit(0, handTotal);
+  return {
+    feasibleCount,
+    ranges: Object.fromEntries(RESOURCES.map((resource, index) => [
+      resource,
+      feasibleCount ? { min: minimums[index], max: maximums[index] } : { min: 0, max: handTotal },
+    ])),
+  };
+}
 
 test("builds exact local counts and bounded opponent ranges", () => {
   const analysis = {
@@ -93,4 +145,84 @@ test("keeps honest full ranges when no public composition is known", () => {
   const result = calculateResourceRanges(player, 2);
   assert(result.feasibleCount > 1);
   for (const range of Object.values(result.ranges)) assert.deepEqual(range, { min: 0, max: 2 });
+});
+
+test("exact range solver matches brute force across varied public ledgers and hidden transfers", () => {
+  const ledgers = [
+    [0, 0, 0, 0, 0],
+    [2, 1, 0, 0, 0],
+    [-1, 2, 1, 0, 0],
+    [3, -2, 0, 1, 0],
+    [1, 1, 1, 1, 1],
+  ];
+  for (let handTotal = 0; handTotal <= 8; handTotal += 1) {
+    for (const counts of ledgers) {
+      for (let hiddenGainCount = 0; hiddenGainCount <= 3; hiddenGainCount += 1) {
+        for (let hiddenLossCount = 0; hiddenLossCount <= 2; hiddenLossCount += 1) {
+          const player = {
+            ledger: Object.fromEntries(RESOURCES.map((resource, index) => [resource, counts[index]])),
+            hiddenCards: Array.from({ length: hiddenGainCount }, (_, index) => ({ id: index })),
+            otherUncertainty: hiddenLossCount,
+          };
+          const exact = calculateResourceRanges(player, handTotal);
+          const reference = bruteForceRanges(player, handTotal);
+          assert.equal(exact.feasibleCount, reference.feasibleCount);
+          assert.deepEqual(exact.ranges, reference.ranges);
+        }
+      }
+    }
+  }
+});
+
+test("public ledger distinguishes free placement, paid builds, trades, and hidden steals", () => {
+  const state = buildPublicLedger([
+    { type: "resource_gain", player: "Avery", cards: { card_2: 3, card_1: 3, card_4: 1, card_3: 1 } },
+    { type: "build_road", player: "Avery", raw: { type: 4 } },
+    { type: "build_road", player: "Avery", raw: { type: 5 } },
+    { type: "bank_trade", player: "Avery", givenCards: { card_2: 2 }, receivedCards: { card_5: 1 } },
+    { type: "player_trade", player: "Avery", otherPlayer: "Blake", givenCards: { card_1: 1 }, receivedCards: { card_3: 1 } },
+    { type: "steal", player: "Blake", victim: "Avery", hiddenCount: 1, messageSequence: 9 },
+  ]);
+  assert.deepEqual(state.players.Avery.ledger, { brick: 0, lumber: 1, ore: 1, grain: 1, wool: 2 });
+  assert.deepEqual(state.players.Blake.ledger, { brick: 0, lumber: 1, ore: 0, grain: 0, wool: -1 });
+  assert.equal(state.players.Avery.otherUncertainty, 1);
+  assert.equal(state.players.Blake.hiddenCards.length, 1);
+  assert.equal(state.uncertainEvents, 1);
+});
+
+test("unknown build provenance is charged and a uniquely required stolen card is resolved", () => {
+  const state = buildPublicLedger([
+    { type: "resource_gain", player: "Avery", cards: { card_2: 2, card_1: 1 } },
+    { type: "build_road", player: "Avery" },
+    { type: "steal", player: "Avery", victim: "Blake", hiddenCount: 1, messageSequence: 12 },
+    { type: "build_road", player: "Avery", raw: { type: 5 } },
+  ]);
+  assert.deepEqual(state.players.Avery.ledger, { brick: 0, lumber: 0, ore: 0, grain: 0, wool: 0 });
+  assert.equal(state.players.Avery.hiddenCards[0].resolvedAs, "lumber");
+  assert.equal(state.players.Avery.resolvedHiddenCards.length, 1);
+  assert.equal(state.players.Avery.uncertainty, 0);
+});
+
+test("malformed card counts are ignored instead of poisoning the tracker", () => {
+  assert.deepEqual(mapCounts({ card_1: "oops", card_2: -5, card_3: 2.9, card_4: Infinity }), {
+    brick: 0,
+    lumber: 0,
+    ore: 0,
+    grain: 0,
+    wool: 2,
+  });
+});
+
+test("large observed hands stay exact and bounded without composition enumeration", { timeout: 1000 }, () => {
+  const result = calculateResourceRanges({
+    ledger: { brick: 12, lumber: -4, ore: 8, grain: 3, wool: 0 },
+    hiddenCards: Array.from({ length: 8 }, (_, index) => ({ id: index })),
+    otherUncertainty: 6,
+  }, 200);
+  assert(result.feasibleCount > 0);
+  for (const range of Object.values(result.ranges)) {
+    assert(range.min >= 0);
+    assert(range.max <= 200);
+    assert(range.min <= range.max);
+  }
 });
