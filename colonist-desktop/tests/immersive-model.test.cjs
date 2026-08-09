@@ -51,11 +51,26 @@ test("matches player rows by color first and normalized name second", () => {
 });
 
 test("scales an integrated multiplayer column without crushing the native game", () => {
-  assert.equal(integratedColumnWidth(1210, 4), 266);
-  assert.equal(integratedColumnWidth(1366, 4), 301);
-  assert.equal(integratedColumnWidth(1480, 4), 326);
-  assert.equal(integratedColumnWidth(1129, 2), 248);
-  assert.equal(integratedColumnWidth(1128, 4), 0);
+  assert.equal(integratedColumnWidth(1210, 4), 327);
+  assert.equal(integratedColumnWidth(1366, 4), 369);
+  assert.equal(integratedColumnWidth(1480, 4), 400);
+  assert.equal(integratedColumnWidth(1920, 4), 518);
+  assert.equal(integratedColumnWidth(2439, 4), 659);
+  assert.equal(integratedColumnWidth(1207, 2), 326);
+  assert.equal(integratedColumnWidth(1206, 4), 0);
   assert.equal(integratedColumnWidth(1210, 1), 0);
   assert.equal(integratedColumnWidth(Number.NaN, 4), 0);
+});
+
+test("keeps unobserved hand ranges explicitly unknown", () => {
+  assert.deepEqual(knowledgeFor({ handTotal: null, cards: {} }, "ore"), {
+    min: 0,
+    max: null,
+    state: "unknown",
+  });
+  assert.deepEqual(knowledgeFor({ handTotal: null, cards: { ore: 2 } }, "ore"), {
+    min: 2,
+    max: null,
+    state: "guaranteed",
+  });
 });

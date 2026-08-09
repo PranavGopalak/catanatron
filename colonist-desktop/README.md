@@ -4,16 +4,16 @@ A dedicated macOS browser for `https://colonist.io/` with local game intelligenc
 
 ## Current milestone
 
-Version 0.5.0 provides:
+Version 0.6.0 provides:
 
 * A persistent, dedicated Electron browser profile for Colonist
 * A temporary, HTTPS-only Apple ID authentication path initiated exclusively by Colonist
 * Strict navigation, popup, download, permission, renderer, and IPC boundaries
-* Guaranteed resource cards inserted into each player’s real Colonist hand row
-* One compact card per known resource type, plus one unresolved card back, each with a count badge
-* A readable multiplayer intelligence column that occupies 22 percent of the rendered page and scales with the window
-* Hands and resource ranges prioritized at the top for immediate scanning
-* Side advertisement gutters reclaimed while the board, hand, chat, controls, and player rows reflow beside the column
+* A dedicated left intelligence column with no mutations inside Colonist’s native player rows
+* Large, flat resource ranges prioritized at the top for immediate scanning
+* A readable multiplayer intelligence column that occupies 27 percent of the rendered page and scales with the window
+* Native player hands, the complete right sidebar, chat, settings, board, hand, and action controls preserved
+* Side advertisement gutters reclaimed while the native game reflows beside the column
 * A compact in-game intelligence button for Beginner Mode and narrow windows
 * Consent gated, local WebSocket card counting for an authorized experiment
 * Exact hand totals for every player and exact resource composition for the local player
@@ -21,8 +21,9 @@ Version 0.5.0 provides:
 * An exact dynamic resource range solver cross checked against brute force reference states
 * Victory point, hidden point risk, development card, event, trade, build, and uncertainty counts
 * Development deck usage and exhausted card tracking
-* Explicit possible and impossible resource states for each player
-* Immediate settlement and city point build risk
+* Explicit possible, impossible, guaranteed, and not-yet-observed resource states for each player
+* Honest widening and a visible conflict marker when protocol evidence is infeasible
+* Immediate settlement and city resource affordability risk
 * Automatic new-game detection plus a manual New Game reset
 * A manual turn timer
 * Two-dice probability reference
@@ -60,11 +61,11 @@ npm run start:demo
 
 Outside a live game, use the setup HUD to enable counting, manage the manual timer, view dice odds, and edit local notes. It can be dragged, collapsed, hidden, or restored with `Command + Shift + H`.
 
-Inside a live game, the setup HUD automatically gets out of the way. Known resources are grouped by type inside Colonist’s original resource-card footprint, with a count badge on every card. Any unresolved resources use one card back with their remaining count. The original player row keeps the same size and position.
+Inside a live game, the setup HUD automatically gets out of the way. Catanatron renders all resource knowledge and derived game-state analytics in its own left column. It reads native player rows only to mirror their seating order and never inserts elements into them, hides their cards, or changes the right sidebar.
 
-Multiplayer games use a cream and blue intelligence column on the left. It occupies 22 percent of the rendered page and reclaims the side advertisement gutters, while Colonist’s board, hand, chat, controls, and player rows reflow into the remaining space. The layout requires at least 880 CSS pixels for the native game and automatically returns to compact mode when that guarantee cannot be met. Hands appear first, followed by development cards, trade risk, and recent deductions.
+Multiplayer games use a cream and blue intelligence column on the left. It occupies 27 percent of the rendered page, with a 320 CSS pixel minimum, and reclaims the side advertisement gutters while Colonist’s board and complete native right sidebar reflow into the remaining space. The layout requires more than 880 CSS pixels for the native game and automatically returns to compact mode when that guarantee cannot be met. Resource ranges appear first, followed only by actionable watch items and compact development card tracking.
 
-Beginner Mode and narrow windows use a small C button beside the native settings control because tutorial objectives occupy Colonist’s left edge. The button opens the same intelligence on demand without permanently covering the tutorial. Resource ranges, resources a player cannot have, development card usage, point build risk, trade risk, and recent deductions remain available in both modes. If counting is off, the intelligence surface offers a direct Enable counting control.
+Beginner Mode and narrow windows use a small C button beside the native settings control because tutorial objectives occupy Colonist’s left edge. The button opens the same intelligence on demand without permanently covering the tutorial. Resource ranges, development card usage, resource affordability risk, and actionable trade risk remain available in both modes. If counting is off, the intelligence surface offers a direct Enable counting control.
 
 Select New Game to clear the current ledger manually. The settings tab can disable and clear capture, change panel opacity, center the panel, or reset all locally saved HUD data.
 
@@ -94,7 +95,7 @@ The WebSocket listener uses Electron's main-process debugger API and sends no AP
 
 ## Experimental authorization boundary
 
-This integration is intended only for the explicitly authorized experiment represented by the user. Keep counting disabled anywhere that authorization does not apply. The implementation preserves hidden information honestly: opponent hand totals are exact when present in the server state, but hidden resource identities display as feasible ranges rather than fabricated exact values.
+This integration is intended only for the explicitly authorized experiment represented by the user. Keep counting disabled anywhere that authorization does not apply. The implementation preserves hidden information honestly: opponent hand totals are exact when present in the server state, but hidden resource identities display as feasible ranges rather than fabricated exact values. A missing hand snapshot remains unknown rather than being misreported as an empty hand.
 
 ## Authentication note
 

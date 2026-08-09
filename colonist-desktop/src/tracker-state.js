@@ -121,29 +121,52 @@ function bestPointBuildPlan(cards = {}) {
 }
 
 function decoratePlayerKnowledge(player) {
-  const total = safeCount(player.handTotal ?? player.knownCards);
+  const hasObservedTotal = player.handTotal !== null
+    && player.handTotal !== undefined
+    && Number.isFinite(Number(player.handTotal));
+  const total = hasObservedTotal ? safeCount(player.handTotal) : null;
+  const candidates = RESOURCES.map((resource) => {
+    const source = player.cardRanges?.[resource];
+    const minimum = safeCount(source?.min ?? player.cards?.[resource]);
+    const maximum = !hasObservedTotal && source?.max == null
+      ? null
+      : Math.max(minimum, safeCount(source?.max ?? minimum));
+    return { resource, minimum, maximum };
+  });
+  const invalidObservedRanges = hasObservedTotal && (
+    candidates.reduce((sum, candidate) => sum + candidate.minimum, 0) > total
+    || candidates.some((candidate) => candidate.minimum > total || candidate.maximum > total)
+  );
   const resourceKnowledge = {};
   const canHave = [];
   const cannotHave = [];
   let guaranteedTotal = 0;
-  for (const resource of RESOURCES) {
-    const source = player.cardRanges?.[resource];
-    const minimum = safeCount(source?.min ?? player.cards?.[resource]);
-    const maximum = Math.max(minimum, safeCount(source?.max ?? minimum));
+  for (const candidate of candidates) {
+    const { resource } = candidate;
+    const minimum = invalidObservedRanges ? 0 : candidate.minimum;
+    const maximum = invalidObservedRanges ? total : candidate.maximum;
     guaranteedTotal += minimum;
-    if (maximum > 0) canHave.push(resource);
+    if (maximum === null || maximum > 0) canHave.push(resource);
     else cannotHave.push(resource);
     resourceKnowledge[resource] = {
       min: minimum,
       max: maximum,
-      state: maximum === 0 ? "impossible" : minimum === maximum ? "exact" : minimum > 0 ? "guaranteed-plus" : "possible",
+      state: maximum === null
+        ? minimum > 0 ? "guaranteed-plus" : "unknown"
+        : maximum === 0
+          ? "impossible"
+          : minimum === maximum
+            ? "exact"
+            : minimum > 0 ? "guaranteed-plus" : "possible",
     };
   }
   return {
     ...player,
     handTotal: total,
+    handObserved: hasObservedTotal,
     knownCards: guaranteedTotal,
-    unresolvedCards: Math.max(0, total - guaranteedTotal),
+    unresolvedCards: hasObservedTotal ? Math.max(0, total - guaranteedTotal) : null,
+    estimateConflict: Math.max(safeCount(player.estimateConflict), invalidObservedRanges ? 1 : 0),
     resourceKnowledge,
     canHave,
     cannotHave,
@@ -160,12 +183,12 @@ function buildWinWatch(players = []) {
     const uncertainty = safeCount(player.unresolvedCards ?? player.uncertainty);
     const status = total >= WINNING_POINTS
       ? "danger"
-      : uncertainty
-        ? "unknown"
-        : totalWithHidden >= WINNING_POINTS
-          ? "watch"
-          : visiblePoints >= 8 || total >= 9 || totalWithHidden >= 9
-            ? "close"
+      : totalWithHidden >= WINNING_POINTS
+        ? "watch"
+        : visiblePoints >= 8 || total >= 9 || totalWithHidden >= 9
+          ? "close"
+          : uncertainty
+            ? "unknown"
             : "stable";
     return {
       player: player.name,
@@ -428,7 +451,7 @@ function reconcileWithHands(state, hands = {}) {
     player.cardRanges = solution.ranges;
     player.rangeFeasibleCount = solution.feasibleCount;
     player.rangeDrift = solution.drift;
-    player.estimateConflict = solution.feasibleCount ? 0 : Math.abs(solution.drift);
+    player.estimateConflict = solution.feasibleCount ? 0 : Math.max(1, Math.abs(solution.drift));
     player.cards = Object.fromEntries(RESOURCES.map((resource) => [resource, solution.ranges[resource].min]));
     player.knownCards = Object.values(player.cards).reduce((sum, amount) => sum + amount, 0);
     player.snapshotUnknown = Math.max(0, player.handTotal - player.knownCards);
@@ -446,7 +469,6 @@ function applyAuthoritativePlayers(state, playersByColor = {}) {
     player.colorLabel = authoritative.colorLabel;
     player.score = authoritative.score || null;
     player.developmentCards = authoritative.developmentCards || { total: 0, cards: {} };
-    if (player.handTotal == null) player.handTotal = 0;
   }
   return state;
 }
@@ -504,7 +526,9 @@ function buildCounterState(analysis = {}, metadata = {}) {
       ...player,
       cards: { ...player.cards },
       ledger: { ...player.ledger },
-      cardRanges: player.cardRanges || Object.fromEntries(RESOURCES.map((resource) => [resource, { min: 0, max: player.handTotal || 0 }])),
+      cardRanges: player.cardRanges || (player.handTotal == null
+        ? null
+        : Object.fromEntries(RESOURCES.map((resource) => [resource, { min: 0, max: player.handTotal }]))),
     }))
     .sort((a, b) => Number(a.color || 99) - Number(b.color || 99) || a.name.localeCompare(b.name));
   const byType = countByType(events);

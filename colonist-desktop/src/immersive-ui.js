@@ -4,7 +4,6 @@ const styles = require("./immersive.css");
 const {
   RESOURCE_ORDER,
   RESOURCE_UI,
-  buildHandGroups,
   count,
   integratedColumnWidth,
   knowledgeFor,
@@ -17,7 +16,6 @@ const STYLE_ID = "catanatron-immersive-styles";
 const PANEL_ID = "catanatron-native-intelligence";
 const COMPACT_BUTTON_ID = "catanatron-intelligence-button";
 const ROW_SELECTOR = '[class*="playerRow"][data-player-color]';
-const RESOURCE_CARD_SELECTOR = '[data-resource-card="true"]';
 
 function escapeHtml(value) {
   return String(value == null ? "" : value)
@@ -38,37 +36,21 @@ function playerNameFromRow(row) {
   return node?.textContent?.trim() || "";
 }
 
-function cardImageSource(resource) {
-  const cardEnum = RESOURCE_UI[resource]?.enum;
-  if (!cardEnum) return "";
-  return document.querySelector(`[data-card-enum="${cardEnum}"] img`)?.src || "";
-}
-
-function cardBackSource(original) {
-  return Array.from(original?.querySelectorAll("img") || [])
-    .find((image) => !image.closest(".catanatron-hand-strip"))?.src || "";
-}
-
-function handGroupMarkup(group, resourceImages, backImage) {
-  if (group.kind === "unknown") {
-    return `<span class="catanatron-hand-card is-unknown" title="${group.count} unresolved resource ${group.count === 1 ? "card" : "cards"}">${backImage ? `<img src="${escapeHtml(backImage)}" alt="">` : "?"}<strong class="catanatron-card-count">${group.count}</strong></span>`;
-  }
-  const config = RESOURCE_UI[group.resource];
-  const image = resourceImages[group.resource];
-  return `<span class="catanatron-hand-card is-resource is-${group.resource}" data-mark="${config.mark}" title="${group.count} guaranteed ${config.label} ${group.count === 1 ? "card" : "cards"}">${image ? `<img src="${escapeHtml(image)}" alt="">` : config.mark}<strong class="catanatron-card-count">${group.count}</strong></span>`;
-}
-
 function rangeMarkup(player) {
   return RESOURCE_ORDER.map((resource) => {
     const config = RESOURCE_UI[resource];
     const knowledge = knowledgeFor(player, resource);
-    const value = knowledge.min === knowledge.max ? knowledge.min : `${knowledge.min}…${knowledge.max}`;
+    const value = knowledge.max === null
+      ? knowledge.min > 0 ? `${knowledge.min}+` : "?"
+      : knowledge.min === knowledge.max ? knowledge.min : `${knowledge.min}–${knowledge.max}`;
     const title = knowledge.state === "impossible"
       ? `${config.label}: cannot have any`
+      : knowledge.state === "unknown"
+        ? `${config.label}: hand total not observed yet`
       : knowledge.state === "possible"
         ? `${config.label}: possible, none guaranteed`
         : `${config.label}: at least ${knowledge.min} guaranteed`;
-    return `<div class="catanatron-range-chip is-${knowledge.state}" title="${escapeHtml(title)}"><span>${config.mark}</span><strong>${value}</strong></div>`;
+    return `<div class="catanatron-range-chip is-${knowledge.state}" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}"><strong>${value}</strong></div>`;
   }).join("");
 }
 
@@ -76,45 +58,47 @@ function devDeckMarkup(devDeck) {
   const deck = devDeck || { bought: 0, playedTotal: 0, hiddenInHands: 0, rows: [] };
   return `
     <section class="catanatron-native-section">
-      <div class="catanatron-section-title">Development deck <span>${count(deck.hiddenInHands)} hidden</span></div>
-      <div class="catanatron-dev-summary">
-        <div><strong>${count(deck.bought)}</strong><span>bought</span></div>
-        <div><strong>${count(deck.playedTotal)}</strong><span>played</span></div>
-        <div><strong>${count(deck.hiddenInHands)}</strong><span>held</span></div>
+      <div class="catanatron-section-title">Development cards <span>${count(deck.hiddenInHands)} unplayed</span></div>
+      <div class="catanatron-dev-list">
+        ${(deck.rows || []).map((row) => `<div class="catanatron-dev-row ${row.exhausted ? "is-exhausted" : ""}"><span>${escapeHtml(row.name)}</span><strong>${count(row.played)} / ${row.limit == null ? "?" : count(row.limit)} played</strong></div>`).join("")}
       </div>
-      ${(deck.rows || []).map((row) => `<div class="catanatron-dev-row ${row.exhausted ? "is-exhausted" : ""}"><span>${escapeHtml(row.name)}</span><strong>${count(row.played)} / ${row.limit == null ? "?" : count(row.limit)}</strong></div>`).join("")}
     </section>`;
 }
 
 function playerIntelMarkup(players, winWatch) {
   const riskByPlayer = new Map((winWatch || []).map((item) => [`${Number(item.color)}:${normalizePlayerName(item.player)}`, item]));
+  const observedPlayers = players.filter((player) => player.handTotal !== null && player.handTotal !== undefined);
+  const guaranteedTotal = observedPlayers.reduce((sum, player) => sum + count(player.knownCards), 0);
+  const cardTotal = observedPlayers.reduce((sum, player) => sum + count(player.handTotal), 0);
   return `
-    <section class="catanatron-native-section">
-      <div class="catanatron-section-title">Hands at a glance <span>${players.length} players</span></div>
+    <section class="catanatron-native-section catanatron-hands-section">
+      <div class="catanatron-section-title">Resource knowledge <span>${guaranteedTotal} of ${cardTotal || "?"} guaranteed</span></div>
+      <div class="catanatron-resource-legend" aria-hidden="true">${RESOURCE_ORDER.map((resource) => `<span>${RESOURCE_UI[resource].mark}</span>`).join("")}</div>
+      <div class="catanatron-player-list">
       ${players.length ? players.map((player) => {
-        const total = count(player.handTotal ?? player.knownCards);
+        const observed = player.handTotal !== null && player.handTotal !== undefined;
+        const total = observed ? count(player.handTotal) : null;
         const known = count(player.knownCards);
-        const unresolved = count(player.unresolvedCards ?? total - known);
-        const dev = count(player.developmentCards?.total ?? player.devCardsBought);
-        const points = count(player.score?.visiblePoints);
+        const unresolved = observed ? count(player.unresolvedCards ?? total - known) : null;
         const risk = riskByPlayer.get(`${Number(player.color)}:${normalizePlayerName(player.name)}`);
-        const impossible = RESOURCE_ORDER.filter((resource) => knowledgeFor(player, resource).max === 0).map((resource) => RESOURCE_UI[resource].mark);
-        return `<article class="catanatron-intel-player">
-          <div class="catanatron-intel-head"><span class="catanatron-player-color color-${Number(player.color || 0)}"></span><span class="catanatron-intel-name">${escapeHtml(player.name || "Unknown player")}</span><span class="catanatron-intel-total">${total} cards</span></div>
+        const resourceReady = count(risk?.buildPoints);
+        const actionableRisk = resourceReady > 0 || ["danger", "watch", "close"].includes(risk?.status);
+        return `<article class="catanatron-intel-player${player.exactHand ? " is-exact" : ""}">
+          <div class="catanatron-intel-head"><span class="catanatron-player-color color-${Number(player.color || 0)}"></span><span class="catanatron-intel-name">${escapeHtml(player.name || "Unknown player")}</span><span class="catanatron-intel-total">${observed ? `${total} card${total === 1 ? "" : "s"}` : "Hand pending"}</span></div>
           <div class="catanatron-range-grid">${rangeMarkup(player)}</div>
-          <div class="catanatron-intel-meta"><strong>${known}</strong> guaranteed, <strong>${unresolved}</strong> unresolved, <strong>${dev}</strong> dev, <strong>${points}</strong> VP${impossible.length ? `<br>Cannot have: <strong>${impossible.join(", ")}</strong>` : ""}${risk ? `<br><span class="catanatron-risk-${escapeHtml(risk.status)}">${escapeHtml(risk.status)}: ${count(risk.buildPoints)} build point${count(risk.buildPoints) === 1 ? "" : "s"} available</span>` : ""}</div>
+          <div class="catanatron-intel-meta"><span>${player.exactHand ? "Exact hand" : observed ? `<strong>${known}</strong> guaranteed · <strong>${unresolved}</strong> unresolved` : "Waiting for a hand snapshot"}</span>${player.estimateConflict ? `<span class="catanatron-range-conflict">Ranges widened</span>` : ""}${actionableRisk ? `<span class="catanatron-risk-pill catanatron-risk-${escapeHtml(risk.status)}">${resourceReady ? `${resourceReady} VP resource ready` : "Point race watch"}</span>` : ""}</div>
         </article>`;
-      }).join("") : `<p class="catanatron-empty">Waiting for the first complete game state. Colonist’s own card backs remain visible until player data arrives.</p>`}
+      }).join("") : `<p class="catanatron-empty">Waiting for the first complete game state.</p>`}
+      </div>
     </section>`;
 }
 
-function eventsMarkup(events, tradeWatch) {
-  return `
-    ${tradeWatch ? `<section class="catanatron-native-section"><div class="catanatron-section-title">Trade risk <span class="catanatron-risk-${escapeHtml(tradeWatch.status)}">${escapeHtml(tradeWatch.status)}</span></div><div class="catanatron-event">${escapeHtml(tradeWatch.line)}</div></section>` : ""}
-    <section class="catanatron-native-section">
-      <div class="catanatron-section-title">Recent deductions</div>
-      ${(events || []).length ? events.slice(0, 4).map((event) => `<div class="catanatron-event">${escapeHtml(event.line || event.type || "Game update")}</div>`).join("") : `<p class="catanatron-empty">Live deductions will appear here as public game events are decoded.</p>`}
-    </section>`;
+function watchlistMarkup(tradeWatch) {
+  if (!tradeWatch || tradeWatch.status === "stable") return "";
+  return `<section class="catanatron-native-section catanatron-watchlist">
+    <div class="catanatron-section-title">Watchlist <span class="catanatron-risk-${escapeHtml(tradeWatch.status)}">${escapeHtml(tradeWatch.status)}</span></div>
+    <div class="catanatron-watch-item">${escapeHtml(tradeWatch.line)}</div>
+  </section>`;
 }
 
 class ImmersiveGameUI {
@@ -132,6 +116,8 @@ class ImmersiveGameUI {
     this.destroyed = false;
     this.observer = new MutationObserver(() => this.schedule());
     this.observer.observe(document.documentElement, { childList: true, subtree: true });
+    this.onResize = () => this.schedule();
+    window.addEventListener("resize", this.onResize, { passive: true });
     this.interval = setInterval(() => this.schedule(), 750);
     this.schedule();
   }
@@ -239,7 +225,8 @@ class ImmersiveGameUI {
   ensureIntelligenceSurface() {
     const game = document.querySelector("#ui-game");
     if (!game) return null;
-    const playerCount = document.querySelectorAll(ROW_SELECTOR).length;
+    const playerInformation = document.querySelector('[data-player-information-container="true"]');
+    const playerCount = playerInformation?.querySelectorAll(ROW_SELECTOR).length || 0;
     const columnWidth = integratedColumnWidth(window.innerWidth, playerCount);
     const mode = columnWidth ? "integrated" : "compact";
     this.switchSurfaceMode(mode);
@@ -298,71 +285,62 @@ class ImmersiveGameUI {
     const panel = this.ensureIntelligenceSurface();
     if (!panel) return;
     this.renderPanel(panel);
-    this.renderHands();
+  }
+
+  orderedPlayers() {
+    const players = this.tracker.players || [];
+    const ordered = [];
+    const seen = new Set();
+    const playerInformation = document.querySelector('[data-player-information-container="true"]');
+    for (const row of playerInformation?.querySelectorAll(ROW_SELECTOR) || []) {
+      const player = matchPlayer(players, row.dataset.playerColor, playerNameFromRow(row));
+      if (!player || seen.has(player)) continue;
+      seen.add(player);
+      ordered.push(player);
+    }
+    for (const player of players) {
+      if (seen.has(player)) continue;
+      seen.add(player);
+      ordered.push(player);
+    }
+    return ordered;
   }
 
   renderPanel(panel) {
     const capture = this.tracker.capture || {};
     const enabled = Boolean(this.state.trackingEnabled);
-    const status = !enabled ? "Counting off" : capture.lastError ? "Capture error" : capture.attached ? `${count(this.tracker.counts?.frames)} frames` : "Starting capture";
-    const digest = JSON.stringify({ enabled, status, mode: this.surfaceMode, tracker: this.tracker });
+    const status = !enabled ? "Counting off" : capture.lastError ? "Capture error" : capture.attached ? "Live · local only" : "Connecting locally";
+    const players = this.orderedPlayers();
+    const digest = JSON.stringify({
+      enabled,
+      status,
+      mode: this.surfaceMode,
+      players: players.map(playerDigest),
+      conflicts: players.map((player) => count(player.estimateConflict)),
+      winWatch: this.tracker.winWatch,
+      devDeck: this.tracker.devDeck,
+      tradeWatch: this.tracker.tradeWatch,
+    });
     if (panel.dataset.digest === digest) return;
     panel.dataset.digest = digest;
     panel.innerHTML = `
       <header class="catanatron-native-header">
         <span class="catanatron-native-mark">C</span>
-        <div class="catanatron-native-title"><strong>Card tracker</strong><span>${escapeHtml(status)} · local only</span></div>
+        <div class="catanatron-native-title"><strong>Catanatron</strong><span>${escapeHtml(status)}</span></div>
         <span class="catanatron-live-dot ${!enabled ? "is-off" : capture.lastError ? "is-error" : ""}"></span>
+        ${enabled ? `<button class="catanatron-header-action" type="button" data-catanatron-action="reset-tracker" title="Reset game ledger">Reset</button>` : ""}
         ${this.surfaceMode === "compact" ? `<button class="catanatron-native-close" type="button" data-catanatron-action="close-intelligence" aria-label="Close card intelligence">×</button>` : ""}
       </header>
-      <div class="catanatron-native-actions">
-        ${enabled ? `<button class="catanatron-native-button secondary" type="button" data-catanatron-action="reset-tracker">New game</button>` : `<button class="catanatron-native-button" type="button" data-catanatron-action="toggle-tracking">Enable counting</button>`}
-      </div>
-      ${playerIntelMarkup(this.tracker.players || [], this.tracker.winWatch)}
+      ${enabled ? "" : `<div class="catanatron-native-actions"><button class="catanatron-native-button" type="button" data-catanatron-action="toggle-tracking">Enable counting</button></div>`}
+      ${playerIntelMarkup(players, this.tracker.winWatch)}
+      ${watchlistMarkup(this.tracker.tradeWatch)}
       ${devDeckMarkup(this.tracker.devDeck)}
-      ${eventsMarkup(this.tracker.recentEvents, this.tracker.tradeWatch)}`;
-  }
-
-  renderHands() {
-    const players = this.tracker.players || [];
-    const resourceImages = Object.fromEntries(RESOURCE_ORDER.map((resource) => [resource, cardImageSource(resource)]));
-    const liveRows = new Set(document.querySelectorAll(ROW_SELECTOR));
-    for (const strip of document.querySelectorAll(".catanatron-hand-strip")) {
-      if (!liveRows.has(strip.closest(ROW_SELECTOR))) strip.remove();
-    }
-    for (const row of liveRows) {
-      const original = row.querySelector(RESOURCE_CARD_SELECTOR);
-      if (!original) continue;
-      const player = matchPlayer(players, row.dataset.playerColor, playerNameFromRow(row));
-      let strip = row.querySelector(":scope .catanatron-hand-strip");
-      if (!player) {
-        original.classList.remove("catanatron-original-resource-card");
-        strip?.remove();
-        continue;
-      }
-      const backImage = cardBackSource(original);
-      original.classList.add("catanatron-original-resource-card");
-      if (!strip) {
-        strip = document.createElement("div");
-        strip.className = "catanatron-hand-strip";
-        strip.setAttribute("aria-label", `${player.name || "Player"} guaranteed resource cards`);
-        original.appendChild(strip);
-      }
-      const digest = `${playerDigest(player)}:${Object.values(resourceImages).join("|")}:${backImage}`;
-      if (strip.dataset.digest === digest) continue;
-      strip.dataset.digest = digest;
-      const groups = buildHandGroups(player);
-      strip.innerHTML = groups.length
-        ? groups.map((group) => handGroupMarkup(group, resourceImages, backImage)).join("")
-        : `<span class="catanatron-hand-zero">0 cards</span>`;
-    }
+      `;
   }
 
   removeGameUI() {
     document.getElementById(PANEL_ID)?.remove();
     document.getElementById(COMPACT_BUTTON_ID)?.remove();
-    for (const original of document.querySelectorAll(".catanatron-original-resource-card")) original.classList.remove("catanatron-original-resource-card");
-    for (const strip of document.querySelectorAll(".catanatron-hand-strip")) strip.remove();
     this.restoreAds();
     this.surfaceMode = null;
     this.popoverOpen = false;
@@ -371,6 +349,7 @@ class ImmersiveGameUI {
   destroy() {
     this.destroyed = true;
     this.observer.disconnect();
+    window.removeEventListener("resize", this.onResize);
     clearInterval(this.interval);
     this.removeGameUI();
     this.setActive(false);

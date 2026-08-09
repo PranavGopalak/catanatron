@@ -53,6 +53,14 @@ function matchPlayer(players, color, name) {
 function knowledgeFor(player, resource) {
   const source = player?.resourceKnowledge?.[resource] || player?.cardRanges?.[resource];
   const minimum = count(source?.min ?? player?.cards?.[resource]);
+  const hasObservedTotal = player?.handTotal !== null && player?.handTotal !== undefined;
+  if (!hasObservedTotal && source?.max == null) {
+    return {
+      min: minimum,
+      max: null,
+      state: minimum > 0 ? "guaranteed" : "unknown",
+    };
+  }
   const maximum = Math.max(minimum, count(source?.max ?? minimum));
   return {
     min: minimum,
@@ -76,8 +84,8 @@ function integratedColumnWidth(viewportWidth, playerCount) {
   const width = Number(viewportWidth);
   const players = count(playerCount);
   if (!Number.isFinite(width) || width <= 0 || players <= 1) return 0;
-  const desired = Math.round(width * 0.22);
-  if (desired < 220 || width - desired <= 880) return 0;
+  const desired = Math.max(320, Math.round(width * 0.27));
+  if (width - desired <= 880) return 0;
   return desired;
 }
 

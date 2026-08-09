@@ -143,8 +143,124 @@ test("derives possible resources and immediate point build risk", () => {
 test("keeps honest full ranges when no public composition is known", () => {
   const player = { ledger: { brick: 0, lumber: 0, ore: 0, grain: 0, wool: 0 }, hiddenCards: [], otherUncertainty: 0 };
   const result = calculateResourceRanges(player, 2);
-  assert(result.feasibleCount > 1);
+  assert.equal(result.feasibleCount, 15);
   for (const range of Object.values(result.ranges)) assert.deepEqual(range, { min: 0, max: 2 });
+});
+
+test("solves exact ledgers and single hidden transfers deterministically", () => {
+  const exact = calculateResourceRanges({
+    ledger: { brick: 2, lumber: 1, ore: 0, grain: 0, wool: 0 },
+    hiddenCards: [],
+    otherUncertainty: 0,
+  }, 3);
+  assert.equal(exact.feasibleCount, 1);
+  assert.deepEqual(exact.ranges, {
+    brick: { min: 2, max: 2 },
+    lumber: { min: 1, max: 1 },
+    ore: { min: 0, max: 0 },
+    grain: { min: 0, max: 0 },
+    wool: { min: 0, max: 0 },
+  });
+
+  const hiddenGain = calculateResourceRanges({
+    ledger: { brick: 0, lumber: 0, ore: 0, grain: 0, wool: 0 },
+    hiddenCards: [{}],
+    otherUncertainty: 0,
+  }, 1);
+  assert.equal(hiddenGain.feasibleCount, 5);
+  for (const range of Object.values(hiddenGain.ranges)) assert.deepEqual(range, { min: 0, max: 1 });
+
+  const hiddenLoss = calculateResourceRanges({
+    ledger: { brick: 1, lumber: 1, ore: 1, grain: 0, wool: 0 },
+    hiddenCards: [],
+    otherUncertainty: 1,
+  }, 2);
+  assert.equal(hiddenLoss.feasibleCount, 3);
+  assert.deepEqual(hiddenLoss.ranges, {
+    brick: { min: 0, max: 1 },
+    lumber: { min: 0, max: 1 },
+    ore: { min: 0, max: 1 },
+    grain: { min: 0, max: 0 },
+    wool: { min: 0, max: 0 },
+  });
+});
+
+test("keeps missing hand snapshots unknown and distinguishes an observed empty hand", () => {
+  const unknown = buildCounterState({
+    playersByColor: {
+      1: { color: 1, colorLabel: "Red", name: "Avery", score: {}, developmentCards: { total: 0, cards: {} } },
+    },
+  }).players[0];
+  assert.equal(unknown.handTotal, null);
+  assert.equal(unknown.handObserved, false);
+  assert.equal(unknown.unresolvedCards, null);
+  for (const resource of RESOURCES) {
+    assert.equal(unknown.resourceKnowledge[resource].max, null);
+    assert.equal(unknown.resourceKnowledge[resource].state, "unknown");
+  }
+
+  const empty = buildCounterState({
+    hands: { handsByColor: { 1: { color: 1, player: "Avery", cards: {}, total: 0, compositionKnown: true } } },
+    playersByColor: {
+      1: { color: 1, colorLabel: "Red", name: "Avery", score: {}, developmentCards: { total: 0, cards: {} } },
+    },
+  }).players[0];
+  assert.equal(empty.handTotal, 0);
+  assert.equal(empty.handObserved, true);
+  for (const resource of RESOURCES) assert.equal(empty.resourceKnowledge[resource].state, "impossible");
+});
+
+test("marks infeasible zero-drift ledgers as conflicts and widens honestly", () => {
+  const direct = calculateResourceRanges({
+    ledger: { brick: -1, lumber: 3, ore: 0, grain: 0, wool: 0 },
+    hiddenCards: [],
+    otherUncertainty: 0,
+  }, 2);
+  assert.equal(direct.drift, 0);
+  assert.equal(direct.feasibleCount, 0);
+  for (const range of Object.values(direct.ranges)) assert.deepEqual(range, { min: 0, max: 2 });
+
+  const state = buildCounterState({
+    events: [
+      { type: "resource_loss", player: "Avery", cards: { card_2: 1 } },
+      { type: "resource_gain", player: "Avery", cards: { card_1: 3 } },
+    ],
+    hands: { handsByColor: { 1: { color: 1, player: "Avery", cards: { hidden_resource_card: 2 }, total: 2, compositionKnown: false } } },
+  });
+  assert.equal(state.players[0].estimateConflict, 1);
+  assert.equal(state.players[0].knownCards, 0);
+  assert.equal(state.players[0].unresolvedCards, 2);
+});
+
+test("widens malformed external ranges instead of exceeding an observed hand", () => {
+  const player = decoratePlayerKnowledge({
+    handTotal: 2,
+    cards: { brick: 3, lumber: 2 },
+    cardRanges: {
+      brick: { min: 3, max: 4 },
+      lumber: { min: 2, max: 2 },
+    },
+  });
+  assert.equal(player.estimateConflict, 1);
+  assert.equal(player.knownCards, 0);
+  assert.equal(player.unresolvedCards, 2);
+  for (const resource of RESOURCES) assert.deepEqual(player.resourceKnowledge[resource], {
+    min: 0,
+    max: 2,
+    state: "possible",
+  });
+});
+
+test("does not hide a winning hidden point risk behind hand uncertainty", () => {
+  const risk = buildWinWatch([{
+    name: "Avery",
+    color: 1,
+    cards: {},
+    unresolvedCards: 4,
+    score: { visiblePoints: 9, hiddenVpRisk: 1 },
+  }])[0];
+  assert.equal(risk.status, "watch");
+  assert.equal(risk.totalWithHidden, 10);
 });
 
 test("exact range solver matches brute force across varied public ledgers and hidden transfers", () => {
