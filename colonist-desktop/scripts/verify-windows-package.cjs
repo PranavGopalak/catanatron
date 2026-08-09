@@ -34,6 +34,11 @@ function readVersionStrings(executable) {
   return versions[0].getStringValues(languages[0]);
 }
 
+function normalizeAsarPath(filePath) {
+  const normalized = filePath.replaceAll("\\", "/");
+  return normalized.startsWith("/") ? normalized : `/${normalized}`;
+}
+
 async function verifyWindowsPackage(outputPath, { expectedArch = "x64" } = {}) {
   const resolved = path.resolve(outputPath);
   const executablePath = path.join(resolved, `${APP_NAME}.exe`);
@@ -47,7 +52,7 @@ async function verifyWindowsPackage(outputPath, { expectedArch = "x64" } = {}) {
   assert(fs.existsSync(path.join(resolved, "chrome_100_percent.pak")), "Chromium resources should exist");
   assert(fs.existsSync(path.join(resolved, "libEGL.dll")), "ANGLE runtime should exist");
 
-  const packagedFiles = new Set(asar.listPackage(asarPath));
+  const packagedFiles = new Set(asar.listPackage(asarPath).map(normalizeAsarPath));
   for (const required of ["/dist/main.cjs", "/dist/preload.cjs", "/package.json", "/assets/icon.png"]) {
     assert(packagedFiles.has(required), `app.asar should contain ${required}`);
   }
@@ -96,4 +101,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { readPeMachine, verifyWindowsPackage };
+module.exports = { normalizeAsarPath, readPeMachine, verifyWindowsPackage };

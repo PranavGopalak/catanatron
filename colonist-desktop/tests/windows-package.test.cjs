@@ -8,7 +8,10 @@ const {
   FuseV1Options,
 } = require("@electron/fuses");
 const { HARDENED_FUSES } = require("../scripts/package-shared.cjs");
-const { readPeMachine } = require("../scripts/verify-windows-package.cjs");
+const {
+  normalizeAsarPath,
+  readPeMachine,
+} = require("../scripts/verify-windows-package.cjs");
 
 const root = path.join(__dirname, "..");
 
@@ -24,6 +27,12 @@ function peHeader(machine) {
 test("recognizes x64 and arm64 Windows executable headers", () => {
   assert.equal(readPeMachine(peHeader(0x8664)), 0x8664);
   assert.equal(readPeMachine(peHeader(0xaa64)), 0xaa64);
+});
+
+test("normalizes archive entries from Windows and POSIX hosts", () => {
+  assert.equal(normalizeAsarPath("\\dist\\main.cjs"), "/dist/main.cjs");
+  assert.equal(normalizeAsarPath("dist\\preload.cjs"), "/dist/preload.cjs");
+  assert.equal(normalizeAsarPath("/assets/icon.png"), "/assets/icon.png");
 });
 
 test("defines every production Electron fuse explicitly", () => {
