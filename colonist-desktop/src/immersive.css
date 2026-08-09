@@ -1,11 +1,13 @@
 #catanatron-native-intelligence,
-.catanatron-hand-strip {
+.catanatron-hand-strip,
+#catanatron-intelligence-button {
   box-sizing: border-box;
   font-family: inherit;
 }
 
 #catanatron-native-intelligence *,
-.catanatron-hand-strip * { box-sizing: border-box; }
+.catanatron-hand-strip *,
+#catanatron-intelligence-button { box-sizing: border-box; }
 
 #catanatron-native-intelligence {
   --cat-blue: #287eaa;
@@ -19,11 +21,7 @@
   --cat-muted: #77766f;
   --cat-good: #3d8d55;
   --cat-danger: #bc3d36;
-  position: fixed;
   z-index: 2147483645;
-  inset: 0 auto 0 0;
-  width: var(--cat-native-width, 165px);
-  height: 100dvh;
   overflow-x: hidden;
   overflow-y: auto;
   color: var(--cat-text);
@@ -37,11 +35,69 @@
   user-select: none;
 }
 
-.catanatron-game-immersive #in_game_ad_left,
-.catanatron-game-immersive #in_game_ad_right,
-.catanatron-game-immersive #in_game_ad_bottom,
-.catanatron-game-immersive #in_game_ad_bottom_small {
-  display: none !important;
+#catanatron-native-intelligence[hidden] { display: none !important; }
+
+#catanatron-native-intelligence.is-docked {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#catanatron-native-intelligence.is-popover {
+  position: fixed;
+  left: var(--cat-popover-left, 52px);
+  top: var(--cat-popover-top, 36px);
+  width: min(300px, calc(100vw - 16px));
+  max-height: min(78dvh, 610px);
+  border: 2px solid rgba(55, 67, 77, .45);
+  border-radius: 7px;
+  box-shadow: 0 8px 24px rgba(21, 34, 43, .38);
+}
+
+.catanatron-intelligence-dock {
+  overflow: hidden !important;
+  background: transparent !important;
+}
+
+#catanatron-intelligence-button {
+  position: fixed;
+  z-index: 2147483644;
+  top: 38px;
+  left: 47px;
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: #fff;
+  background: linear-gradient(#ffa546, #f28b26);
+  border: 2px solid rgba(255, 255, 255, .78);
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, .32);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, .25);
+}
+#catanatron-intelligence-button:hover { filter: brightness(1.07); }
+#catanatron-intelligence-button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+#catanatron-intelligence-button[aria-expanded="true"] { background: linear-gradient(#4296bd, #287eaa); }
+
+.catanatron-native-close {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  padding: 0;
+  color: #fff;
+  background: rgba(0, 0, 0, .18);
+  border: 1px solid rgba(255, 255, 255, .42);
+  border-radius: 4px;
+  cursor: pointer;
+  font: 800 16px/1 inherit;
 }
 
 .catanatron-native-header {
@@ -145,20 +201,33 @@
 .catanatron-event::before { content: ""; position: absolute; top: 4px; left: 0; width: 4px; height: 4px; background: var(--cat-orange); border: 1px solid var(--cat-orange-dark); border-radius: 50%; }
 .catanatron-empty { margin: 0; color: var(--cat-muted); font-size: 8px; line-height: 1.45; }
 
-.catanatron-original-resource-card { display: none !important; }
+.catanatron-original-resource-card {
+  position: relative !important;
+  isolation: isolate;
+}
+.catanatron-original-resource-card > :not(.catanatron-hand-strip) { visibility: hidden !important; }
 .catanatron-hand-strip {
-  min-width: 25px;
-  max-width: 150px;
-  display: flex;
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
   align-items: center;
-  gap: 3px;
-  margin-right: 3px;
+  justify-items: center;
+  gap: 1px;
+  padding: 1px;
+  overflow: visible;
   pointer-events: none;
 }
 .catanatron-hand-card {
   position: relative;
-  width: 22px;
-  height: 34px;
+  width: 100%;
+  min-width: 9px;
+  max-width: 14px;
+  height: 17px;
   display: grid;
   place-items: center;
   flex: none;
@@ -166,29 +235,29 @@
   color: #fff;
   background: #536270;
   border: 1px solid rgba(255, 255, 255, .62);
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, .35);
-  font-size: 7px;
+  border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+  font-size: 5px;
   font-weight: 900;
   line-height: 1;
 }
-.catanatron-hand-card img { width: 100%; height: 100%; display: block; object-fit: cover; border-radius: 3px; }
+.catanatron-hand-card img { width: 100%; height: 100%; display: block; object-fit: cover; border-radius: 1px; }
 .catanatron-card-count {
   position: absolute;
   z-index: 2;
-  top: -5px;
-  right: -5px;
-  min-width: 15px;
-  height: 15px;
+  top: -3px;
+  right: -3px;
+  min-width: 9px;
+  height: 9px;
   display: grid;
   place-items: center;
-  padding: 0 3px;
+  padding: 0 2px;
   color: #fff;
   background: var(--cat-orange, #f28b26);
   border: 1px solid #b65b13;
   border-radius: 999px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, .42);
-  font-size: 8px;
+  font-size: 5px;
   font-weight: 900;
   line-height: 1;
   text-shadow: 0 1px 1px rgba(0, 0, 0, .3);
@@ -198,11 +267,11 @@
   position: absolute;
   right: 1px;
   bottom: 1px;
-  padding: 1px 2px;
+  padding: 0 1px;
   color: #fff;
   background: rgba(31, 42, 48, .78);
   border-radius: 2px;
-  font-size: 5px;
+  font-size: 3px;
 }
 .catanatron-hand-card.is-brick { background: #a95646; }
 .catanatron-hand-card.is-lumber { background: #458259; }
@@ -210,7 +279,7 @@
 .catanatron-hand-card.is-grain { background: #d8ac47; }
 .catanatron-hand-card.is-wool { background: #8bb674; }
 .catanatron-hand-card.is-unknown { color: rgba(255, 255, 255, .82); border-color: rgba(255, 255, 255, .44); }
-.catanatron-hand-zero { padding: 3px 5px; color: #fff; background: rgba(38, 48, 55, .42); border-radius: 4px; font-size: 7px; }
+.catanatron-hand-zero { grid-column: 1 / -1; color: #fff; font-size: 6px; }
 
 @media (max-width: 1100px), (max-height: 700px) {
   .catanatron-native-header { min-height: 48px; padding: 7px; }
@@ -219,8 +288,7 @@
   .catanatron-native-section { padding: 7px; }
   .catanatron-dev-summary div { padding: 4px 1px; }
   .catanatron-intel-player { padding: 5px; margin-top: 4px; }
-  .catanatron-hand-card { width: 19px; height: 29px; }
-  .catanatron-card-count { top: -4px; right: -4px; min-width: 13px; height: 13px; font-size: 7px; }
+  .catanatron-hand-card { height: 15px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

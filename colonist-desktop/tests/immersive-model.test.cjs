@@ -4,6 +4,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
   buildHandGroups,
+  isSafeSideDock,
   knowledgeFor,
   matchPlayer,
   normalizePlayerName,
@@ -47,4 +48,12 @@ test("matches player rows by color first and normalized name second", () => {
   assert.equal(matchPlayer(players, "2", "Different DOM name"), players[0]);
   assert.equal(matchPlayer(players, "", "  AVERY prime "), players[1]);
   assert.equal(normalizePlayerName("  AVERY   Prime "), "avery prime");
+});
+
+test("uses a side dock only when it is a real nonoverlapping game gutter", () => {
+  const game = { left: 135, right: 1074, width: 939, height: 740 };
+  assert.equal(isSafeSideDock(game, { left: 4, right: 126, width: 122, height: 494 }), true);
+  assert.equal(isSafeSideDock(game, null), false);
+  assert.equal(isSafeSideDock(game, { left: 0, right: 208, width: 208, height: 620 }), false);
+  assert.equal(isSafeSideDock(game, { left: 0, right: 90, width: 90, height: 620 }), false);
 });

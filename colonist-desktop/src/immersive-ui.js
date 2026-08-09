@@ -6,6 +6,7 @@ const {
   RESOURCE_UI,
   buildHandGroups,
   count,
+  isSafeSideDock,
   knowledgeFor,
   matchPlayer,
   normalizePlayerName,
@@ -14,6 +15,7 @@ const {
 
 const STYLE_ID = "catanatron-immersive-styles";
 const PANEL_ID = "catanatron-native-intelligence";
+const COMPACT_BUTTON_ID = "catanatron-intelligence-button";
 const ROW_SELECTOR = '[class*="playerRow"][data-player-color]';
 const RESOURCE_CARD_SELECTOR = '[data-resource-card="true"]';
 
@@ -43,7 +45,8 @@ function cardImageSource(resource) {
 }
 
 function cardBackSource(original) {
-  return original?.querySelector("img")?.src || "";
+  return Array.from(original?.querySelectorAll("img") || [])
+    .find((image) => !image.closest(".catanatron-hand-strip"))?.src || "";
 }
 
 function handGroupMarkup(group, resourceImages, backImage) {
@@ -122,6 +125,8 @@ class ImmersiveGameUI {
     this.onResetTracker = onResetTracker;
     this.onActiveChange = onActiveChange;
     this.active = false;
+    this.surfaceMode = null;
+    this.popoverOpen = false;
     this.trimmedNodes = new Map();
     this.scheduled = false;
     this.destroyed = false;
@@ -167,14 +172,7 @@ class ImmersiveGameUI {
     node.setAttribute("aria-hidden", "true");
   }
 
-  ensureNativePanel() {
-    document.documentElement.classList.add("catanatron-game-immersive");
-    const game = document.querySelector("#ui-game");
-    if (!game) return null;
-    this.rememberAndSetDisplay(document.getElementById("in_game_ad_left"), "none");
-    this.rememberAndSetDisplay(document.getElementById("in_game_ad_right"), "none");
-    this.rememberAndSetDisplay(document.getElementById("in_game_ad_bottom"), "none");
-    this.rememberAndSetDisplay(document.getElementById("in_game_ad_bottom_small"), "none");
+  ensurePanelElement() {
     let panel = document.getElementById(PANEL_ID);
     if (!panel) {
       panel = document.createElement("aside");
@@ -186,6 +184,10 @@ class ImmersiveGameUI {
         if (!button) return;
         button.disabled = true;
         try {
+          if (button.dataset.catanatronAction === "close-intelligence") {
+            this.popoverOpen = false;
+            panel.hidden = true;
+          }
           if (button.dataset.catanatronAction === "toggle-tracking") await this.onToggleTracking?.();
           if (button.dataset.catanatronAction === "reset-tracker") await this.onResetTracker?.();
         } finally {
@@ -193,10 +195,69 @@ class ImmersiveGameUI {
         }
       });
     }
-    if (panel.parentElement !== game) game.appendChild(panel);
-    const stageLeft = game.getBoundingClientRect().left || 0;
-    const panelWidth = stageLeft >= 120 ? Math.round(stageLeft) : Math.min(165, Math.max(132, Math.round(window.innerWidth * 0.18)));
-    panel.style.setProperty("--cat-native-width", `${panelWidth}px`);
+    return panel;
+  }
+
+  switchSurfaceMode(mode) {
+    if (this.surfaceMode === mode) return;
+    this.restoreAds();
+    document.getElementById(PANEL_ID)?.remove();
+    document.getElementById(COMPACT_BUTTON_ID)?.remove();
+    this.popoverOpen = false;
+    this.surfaceMode = mode;
+  }
+
+  ensureCompactButton(game, panel) {
+    let button = document.getElementById(COMPACT_BUTTON_ID);
+    const settingsImage = game.querySelector('img[src*="icon_settings"]');
+    const settingsControl = settingsImage?.closest('button, [role="button"]') || settingsImage;
+    if (!button) {
+      button = document.createElement("button");
+      button.id = COMPACT_BUTTON_ID;
+      button.type = "button";
+      button.textContent = "C";
+      button.title = "Open card intelligence";
+      button.setAttribute("aria-label", "Open Catanatron card intelligence");
+      button.addEventListener("click", () => {
+        this.popoverOpen = !this.popoverOpen;
+        panel.hidden = !this.popoverOpen;
+        button.setAttribute("aria-expanded", String(this.popoverOpen));
+      });
+    }
+    if (button.parentElement !== document.body) document.body.appendChild(button);
+    button.setAttribute("aria-expanded", String(this.popoverOpen));
+    const settingsRect = settingsControl?.getBoundingClientRect();
+    const buttonLeft = Math.max(8, (settingsRect?.right || 40) + 7);
+    const buttonTop = Math.max(8, settingsRect?.top || 38);
+    button.style.left = `${Math.min(buttonLeft, window.innerWidth - 39)}px`;
+    button.style.top = `${Math.min(buttonTop, window.innerHeight - 39)}px`;
+    const anchorRect = button.getBoundingClientRect();
+    panel.style.setProperty("--cat-popover-left", `${Math.min(Math.max(8, anchorRect.right + 8), Math.max(8, window.innerWidth - 308))}px`);
+    panel.style.setProperty("--cat-popover-top", `${Math.min(Math.max(8, anchorRect.top), Math.max(8, window.innerHeight - 520))}px`);
+  }
+
+  ensureIntelligenceSurface() {
+    const game = document.querySelector("#ui-game");
+    if (!game) return null;
+    const dock = document.getElementById("in_game_ad_left");
+    const mode = isSafeSideDock(game.getBoundingClientRect(), dock?.getBoundingClientRect()) ? "dock" : "compact";
+    this.switchSurfaceMode(mode);
+    document.documentElement.classList.add("catanatron-game-immersive");
+    const panel = this.ensurePanelElement();
+    panel.className = mode === "dock" ? "is-docked" : "is-popover";
+    if (mode === "dock") {
+      dock.classList.add("catanatron-intelligence-dock");
+      for (const child of dock.children) {
+        if (child !== panel) this.rememberAndSetDisplay(child, "none");
+      }
+      if (panel.parentElement !== dock) dock.appendChild(panel);
+      panel.hidden = false;
+      document.getElementById(COMPACT_BUTTON_ID)?.remove();
+    } else {
+      if (panel.parentElement !== document.body) document.body.appendChild(panel);
+      panel.hidden = !this.popoverOpen;
+      this.ensureCompactButton(game, panel);
+    }
     const nativeReference = document.querySelector('[data-player-information-container="true"]');
     if (nativeReference) {
       const computed = getComputedStyle(nativeReference);
@@ -214,6 +275,7 @@ class ImmersiveGameUI {
     }
     this.trimmedNodes.clear();
     document.documentElement.classList.remove("catanatron-game-immersive");
+    document.querySelector(".catanatron-intelligence-dock")?.classList.remove("catanatron-intelligence-dock");
   }
 
   setActive(active) {
@@ -231,7 +293,7 @@ class ImmersiveGameUI {
       return;
     }
     this.ensureStyles();
-    const panel = this.ensureNativePanel();
+    const panel = this.ensureIntelligenceSurface();
     if (!panel) return;
     this.renderPanel(panel);
     this.renderHands();
@@ -241,7 +303,7 @@ class ImmersiveGameUI {
     const capture = this.tracker.capture || {};
     const enabled = Boolean(this.state.trackingEnabled);
     const status = !enabled ? "Counting off" : capture.lastError ? "Capture error" : capture.attached ? `${count(this.tracker.counts?.frames)} frames` : "Starting capture";
-    const digest = JSON.stringify({ enabled, status, tracker: this.tracker });
+    const digest = JSON.stringify({ enabled, status, mode: this.surfaceMode, tracker: this.tracker });
     if (panel.dataset.digest === digest) return;
     panel.dataset.digest = digest;
     panel.innerHTML = `
@@ -249,6 +311,7 @@ class ImmersiveGameUI {
         <span class="catanatron-native-mark">C</span>
         <div class="catanatron-native-title"><strong>Card tracker</strong><span>${escapeHtml(status)} · local only</span></div>
         <span class="catanatron-live-dot ${!enabled ? "is-off" : capture.lastError ? "is-error" : ""}"></span>
+        ${this.surfaceMode === "compact" ? `<button class="catanatron-native-close" type="button" data-catanatron-action="close-intelligence" aria-label="Close card intelligence">×</button>` : ""}
       </header>
       <div class="catanatron-native-actions">
         ${enabled ? `<button class="catanatron-native-button secondary" type="button" data-catanatron-action="reset-tracker">New game</button>` : `<button class="catanatron-native-button" type="button" data-catanatron-action="toggle-tracking">Enable counting</button>`}
@@ -275,30 +338,32 @@ class ImmersiveGameUI {
         strip?.remove();
         continue;
       }
-      const parent = original.parentElement;
-      if (!parent) continue;
+      const backImage = cardBackSource(original);
       original.classList.add("catanatron-original-resource-card");
       if (!strip) {
         strip = document.createElement("div");
         strip.className = "catanatron-hand-strip";
         strip.setAttribute("aria-label", `${player.name || "Player"} guaranteed resource cards`);
-        parent.insertBefore(strip, original);
+        original.appendChild(strip);
       }
-      const digest = `${playerDigest(player)}:${Object.values(resourceImages).join("|")}:${cardBackSource(original)}`;
+      const digest = `${playerDigest(player)}:${Object.values(resourceImages).join("|")}:${backImage}`;
       if (strip.dataset.digest === digest) continue;
       strip.dataset.digest = digest;
       const groups = buildHandGroups(player);
       strip.innerHTML = groups.length
-        ? groups.map((group) => handGroupMarkup(group, resourceImages, cardBackSource(original))).join("")
+        ? groups.map((group) => handGroupMarkup(group, resourceImages, backImage)).join("")
         : `<span class="catanatron-hand-zero">0 cards</span>`;
     }
   }
 
   removeGameUI() {
     document.getElementById(PANEL_ID)?.remove();
+    document.getElementById(COMPACT_BUTTON_ID)?.remove();
     for (const original of document.querySelectorAll(".catanatron-original-resource-card")) original.classList.remove("catanatron-original-resource-card");
     for (const strip of document.querySelectorAll(".catanatron-hand-strip")) strip.remove();
     this.restoreAds();
+    this.surfaceMode = null;
+    this.popoverOpen = false;
   }
 
   destroy() {
