@@ -4,7 +4,7 @@ A dedicated macOS browser for `https://colonist.io/` with local game intelligenc
 
 ## Current milestone
 
-Version 0.6.0 provides:
+Version 0.6.1 provides:
 
 * A persistent, dedicated Electron browser profile for Colonist
 * A temporary, HTTPS-only Apple ID authentication path initiated exclusively by Colonist
@@ -13,11 +13,13 @@ Version 0.6.0 provides:
 * Large, flat resource ranges prioritized at the top for immediate scanning
 * A readable multiplayer intelligence column that occupies 27 percent of the rendered page and scales with the window
 * Native player hands, the complete right sidebar, chat, settings, board, hand, and action controls preserved
+* Player labels taken directly from Colonist’s native rows, with tracker data bound by player color and fail-closed pending states for unmatched identities
 * Side advertisement gutters reclaimed while the native game reflows beside the column
 * A compact in-game intelligence button for Beginner Mode and narrow windows
 * Consent gated, local WebSocket card counting for an authorized experiment
 * Exact hand totals for every player and exact resource composition for the local player
 * Bounded resource ranges for opponents when individual card identities are hidden
+* Feasible-hand percentages showing how often each resource appears across every mathematically valid composition
 * An exact dynamic resource range solver cross checked against brute force reference states
 * Victory point, hidden point risk, development card, event, trade, build, and uncertainty counts
 * Development deck usage and exhausted card tracking
@@ -95,7 +97,7 @@ The WebSocket listener uses Electron's main-process debugger API and sends no AP
 
 ## Experimental authorization boundary
 
-This integration is intended only for the explicitly authorized experiment represented by the user. Keep counting disabled anywhere that authorization does not apply. The implementation preserves hidden information honestly: opponent hand totals are exact when present in the server state, but hidden resource identities display as feasible ranges rather than fabricated exact values. A missing hand snapshot remains unknown rather than being misreported as an empty hand.
+This integration is intended only for the explicitly authorized experiment represented by the user. Keep counting disabled anywhere that authorization does not apply. The implementation preserves hidden information honestly: opponent hand totals are exact when present in the server state, but hidden resource identities display as feasible ranges rather than fabricated exact values. Percentages describe the share of feasible hand compositions containing a resource, not a claim about the opponent’s behavior or an unsupported predictive probability. A missing hand snapshot remains unknown rather than being misreported as an empty hand.
 
 ## Authentication note
 

@@ -58,15 +58,59 @@ function knowledgeFor(player, resource) {
     return {
       min: minimum,
       max: null,
+      presencePct: minimum > 0 ? 100 : null,
+      expected: minimum > 0 ? minimum : null,
       state: minimum > 0 ? "guaranteed" : "unknown",
     };
   }
   const maximum = Math.max(minimum, count(source?.max ?? minimum));
+  const hasSuppliedPercentage = source?.presencePct !== null && source?.presencePct !== undefined;
+  const suppliedPercentage = Number(source?.presencePct);
+  const presencePct = hasSuppliedPercentage && Number.isFinite(suppliedPercentage)
+    ? Math.min(100, Math.max(0, Math.round(suppliedPercentage)))
+    : maximum === 0
+      ? 0
+      : minimum > 0 || minimum === maximum
+        ? 100
+        : null;
+  const hasSuppliedExpected = source?.expected !== null && source?.expected !== undefined;
+  const suppliedExpected = Number(source?.expected);
   return {
     min: minimum,
     max: maximum,
+    presencePct,
+    expected: hasSuppliedExpected && Number.isFinite(suppliedExpected)
+      ? Math.min(maximum, Math.max(minimum, suppliedExpected))
+      : minimum === maximum ? minimum : null,
     state: maximum === 0 ? "impossible" : minimum === maximum ? "exact" : minimum > 0 ? "guaranteed" : "possible",
   };
+}
+
+function bindPlayersToNativeIdentities(players = [], identities = []) {
+  const remaining = Array.from(players || []);
+  return Array.from(identities || []).map((identity) => {
+    const matched = matchPlayer(remaining, identity?.color, identity?.name);
+    if (!matched) {
+      return {
+        color: Number(identity?.color),
+        name: identity?.name || "Player",
+        displayName: identity?.name || "Player",
+        trackerName: null,
+        handTotal: null,
+        identityPending: true,
+        cards: {},
+        cardRanges: {},
+        resourceKnowledge: {},
+      };
+    }
+    remaining.splice(remaining.indexOf(matched), 1);
+    return {
+      ...matched,
+      displayName: identity?.name || matched.name,
+      trackerName: matched.name,
+      identityPending: false,
+    };
+  });
 }
 
 function playerDigest(player) {
@@ -76,6 +120,9 @@ function playerDigest(player) {
     total: player?.handTotal,
     dev: player?.developmentCards?.total,
     score: player?.score,
+    displayName: player?.displayName,
+    trackerName: player?.trackerName,
+    identityPending: player?.identityPending,
     knowledge: RESOURCE_ORDER.map((resource) => knowledgeFor(player, resource)),
   });
 }
@@ -92,6 +139,7 @@ function integratedColumnWidth(viewportWidth, playerCount) {
 module.exports = {
   RESOURCE_ORDER,
   RESOURCE_UI,
+  bindPlayersToNativeIdentities,
   buildHandGroups,
   count,
   guaranteedCount,

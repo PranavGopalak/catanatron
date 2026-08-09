@@ -180,6 +180,13 @@
   text-align: center;
 }
 
+.catanatron-resource-note {
+  margin: -3px 0 5px;
+  color: var(--cat-muted);
+  font-size: max(9px, .66vw);
+  line-height: 1.25;
+}
+
 .catanatron-player-list { border-top: 1px solid rgba(126, 119, 108, .42); }
 .catanatron-intel-player { padding: max(9px, .66vw) 0 max(10px, .73vw); border-bottom: 1px solid rgba(126, 119, 108, .42); }
 .catanatron-intel-player:last-child { border-bottom: 0; padding-bottom: 1px; }
@@ -194,14 +201,17 @@
 .catanatron-intel-total { padding: max(3px, .22vw) max(6px, .44vw); color: #535b60; background: rgba(255, 255, 255, .58); border: 1px solid #c9c0b2; border-radius: 999px; font-size: max(10px, .73vw); font-weight: 800; white-space: nowrap; }
 
 .catanatron-range-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; margin-top: 6px; }
-.catanatron-range-chip { min-width: 0; min-height: max(34px, 2.5vw); display: grid; place-items: center; text-align: center; background: #e8e3d9; border: 1px solid #cec6b9; border-radius: 4px; }
+.catanatron-range-chip { min-width: 0; min-height: max(34px, 2.5vw); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center; background: #e8e3d9; border: 1px solid #cec6b9; border-radius: 4px; }
 .catanatron-range-chip strong { color: #465057; font-size: max(14px, 1.03vw); font-weight: 900; line-height: 1; }
+.catanatron-range-chip span { color: #697177; font-size: max(8.5px, .62vw); font-weight: 800; line-height: 1; }
 .catanatron-range-chip.is-guaranteed,
 .catanatron-range-chip.is-exact { background: #dcebdc; border-color: #91b297; }
 .catanatron-range-chip.is-guaranteed strong,
 .catanatron-range-chip.is-exact strong { color: #29653b; }
 .catanatron-range-chip.is-possible { background: #fff2d8; border-color: #d8bd7e; }
-.catanatron-range-chip.is-impossible { opacity: .42; }
+.catanatron-range-chip.is-impossible { background: #e1ded7; border-color: #c5beb2; }
+.catanatron-range-chip.is-impossible strong { color: #73787b; }
+.catanatron-range-chip.is-impossible span { color: #777b7d; }
 .catanatron-range-chip.is-unknown { background: #e4e7e9; border-style: dashed; }
 
 .catanatron-intel-meta { min-height: max(16px, 1.17vw); display: flex; align-items: center; flex-wrap: wrap; gap: max(5px, .36vw) max(8px, .58vw); margin-top: max(6px, .44vw); color: var(--cat-muted); font-size: max(10.5px, .77vw); line-height: 1.3; }

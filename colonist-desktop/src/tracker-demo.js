@@ -1,6 +1,6 @@
 "use strict";
 
-const { buildWinWatch, decoratePlayerKnowledge } = require("./tracker-state");
+const { buildWinWatch, calculateResourceRanges, decoratePlayerKnowledge } = require("./tracker-state");
 
 const RESOURCE_RANGES = {
   brick: { min: 0, max: 0 },
@@ -10,10 +10,15 @@ const RESOURCE_RANGES = {
   wool: { min: 0, max: 0 },
 };
 
-function player({ color, colorLabel, name, cards, ranges, total, exact, visiblePoints, hiddenPoints = 0, dev = 0 }) {
+function player({ color, colorLabel, name, cards, ledger, hidden = 0, ranges, total, exact, visiblePoints, hiddenPoints = 0, dev = 0 }) {
+  const solvedRanges = ranges || (ledger ? calculateResourceRanges({
+    ledger,
+    hiddenCards: Array.from({ length: hidden }, () => ({})),
+    otherUncertainty: 0,
+  }, total).ranges : null);
   const cardRanges = Object.fromEntries(Object.keys(RESOURCE_RANGES).map((resource) => [
     resource,
-    ranges?.[resource] || { min: Number(cards?.[resource] || 0), max: Number(cards?.[resource] || 0) },
+    solvedRanges?.[resource] || { min: Number(cards?.[resource] || 0), max: Number(cards?.[resource] || 0) },
   ]));
   const guaranteed = Object.fromEntries(Object.entries(cardRanges).map(([resource, range]) => [resource, range.min]));
   const knownCards = Object.values(guaranteed).reduce((sum, amount) => sum + amount, 0);
@@ -37,9 +42,9 @@ function createDemoTrackerSnapshot() {
   const updatedAt = new Date().toISOString();
   const localCards = { brick: 2, lumber: 1, ore: 0, grain: 2, wool: 1 };
   const players = [
-    player({ color: 4, colorLabel: "Green", name: "Avery", total: 5, visiblePoints: 6, dev: 1, ranges: { brick: { min: 1, max: 2 }, lumber: { min: 0, max: 1 }, ore: { min: 1, max: 2 }, grain: { min: 1, max: 2 }, wool: { min: 0, max: 1 } } }),
-    player({ color: 2, colorLabel: "Blue", name: "Morgan", total: 7, visiblePoints: 5, dev: 2, ranges: { brick: { min: 1, max: 2 }, lumber: { min: 2, max: 4 }, ore: { min: 0, max: 0 }, grain: { min: 0, max: 2 }, wool: { min: 0, max: 1 } } }),
-    player({ color: 3, colorLabel: "Orange", name: "Riley", total: 4, visiblePoints: 7, dev: 0, ranges: { brick: { min: 1, max: 2 }, lumber: { min: 1, max: 2 }, ore: { min: 0, max: 1 }, grain: { min: 0, max: 1 }, wool: { min: 0, max: 1 } } }),
+    player({ color: 4, colorLabel: "Green", name: "Avery", total: 5, visiblePoints: 6, dev: 1, ledger: { brick: 1, lumber: 0, ore: 1, grain: 1, wool: 0 }, hidden: 2 }),
+    player({ color: 2, colorLabel: "Blue", name: "Morgan", total: 7, visiblePoints: 5, dev: 2, ledger: { brick: 1, lumber: 2, ore: 0, grain: 0, wool: 0 }, hidden: 4 }),
+    player({ color: 3, colorLabel: "Orange", name: "Riley", total: 4, visiblePoints: 7, dev: 0, ledger: { brick: 1, lumber: 1, ore: 0, grain: 0, wool: 0 }, hidden: 2 }),
     player({ color: 1, colorLabel: "Red", name: "You", cards: localCards, total: 6, exact: true, visiblePoints: 8, hiddenPoints: 1, dev: 2 }),
   ];
   const devDeck = {

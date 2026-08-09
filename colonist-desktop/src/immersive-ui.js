@@ -4,10 +4,10 @@ const styles = require("./immersive.css");
 const {
   RESOURCE_ORDER,
   RESOURCE_UI,
+  bindPlayersToNativeIdentities,
   count,
   integratedColumnWidth,
   knowledgeFor,
-  matchPlayer,
   normalizePlayerName,
   playerDigest,
 } = require("./immersive-model");
@@ -32,8 +32,26 @@ function gameIsActive() {
 }
 
 function playerNameFromRow(row) {
-  const node = row.querySelector('[class*="username"]');
+  const node = row.querySelector('[data-player-username], [class*="username"], [class*="playerName"], [class*="player-name"]');
   return node?.textContent?.trim() || "";
+}
+
+function nativePlayerRows() {
+  const game = document.querySelector("#ui-game");
+  if (!game) return [];
+  const opponents = document.querySelector('[data-player-information-container="true"]');
+  const rows = [];
+  const seen = new Set();
+  for (const row of opponents?.querySelectorAll(ROW_SELECTOR) || []) {
+    seen.add(row);
+    rows.push(row);
+  }
+  for (const row of game.querySelectorAll(ROW_SELECTOR)) {
+    if (seen.has(row)) continue;
+    seen.add(row);
+    rows.push(row);
+  }
+  return rows;
 }
 
 function rangeMarkup(player) {
@@ -43,6 +61,10 @@ function rangeMarkup(player) {
     const value = knowledge.max === null
       ? knowledge.min > 0 ? `${knowledge.min}+` : "?"
       : knowledge.min === knowledge.max ? knowledge.min : `${knowledge.min}–${knowledge.max}`;
+    const likelihood = knowledge.presencePct == null ? null : `${knowledge.presencePct}%`;
+    const likelihoodDetail = likelihood == null
+      ? knowledge.state === "unknown" ? "not calculated until the hand is observed" : "possible, but no defensible percentage yet"
+      : `${likelihood} of feasible hands contain ${config.label.toLowerCase()}`;
     const title = knowledge.state === "impossible"
       ? `${config.label}: cannot have any`
       : knowledge.state === "unknown"
@@ -50,7 +72,8 @@ function rangeMarkup(player) {
       : knowledge.state === "possible"
         ? `${config.label}: possible, none guaranteed`
         : `${config.label}: at least ${knowledge.min} guaranteed`;
-    return `<div class="catanatron-range-chip is-${knowledge.state}" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}"><strong>${value}</strong></div>`;
+    const fullTitle = `${title}; ${likelihoodDetail}`;
+    return `<div class="catanatron-range-chip is-${knowledge.state}" title="${escapeHtml(fullTitle)}" aria-label="${escapeHtml(fullTitle)}"><strong>${value}</strong><span>${likelihood || (knowledge.state === "unknown" ? "pending" : "possible")}</span></div>`;
   }).join("");
 }
 
@@ -66,13 +89,14 @@ function devDeckMarkup(devDeck) {
 }
 
 function playerIntelMarkup(players, winWatch) {
-  const riskByPlayer = new Map((winWatch || []).map((item) => [`${Number(item.color)}:${normalizePlayerName(item.player)}`, item]));
+  const risks = winWatch || [];
   const observedPlayers = players.filter((player) => player.handTotal !== null && player.handTotal !== undefined);
   const guaranteedTotal = observedPlayers.reduce((sum, player) => sum + count(player.knownCards), 0);
   const cardTotal = observedPlayers.reduce((sum, player) => sum + count(player.handTotal), 0);
   return `
     <section class="catanatron-native-section catanatron-hands-section">
       <div class="catanatron-section-title">Resource knowledge <span>${guaranteedTotal} of ${cardTotal || "?"} guaranteed</span></div>
+      <div class="catanatron-resource-note">Percent shows feasible hands containing each resource</div>
       <div class="catanatron-resource-legend" aria-hidden="true">${RESOURCE_ORDER.map((resource) => `<span>${RESOURCE_UI[resource].mark}</span>`).join("")}</div>
       <div class="catanatron-player-list">
       ${players.length ? players.map((player) => {
@@ -80,24 +104,30 @@ function playerIntelMarkup(players, winWatch) {
         const total = observed ? count(player.handTotal) : null;
         const known = count(player.knownCards);
         const unresolved = observed ? count(player.unresolvedCards ?? total - known) : null;
-        const risk = riskByPlayer.get(`${Number(player.color)}:${normalizePlayerName(player.name)}`);
+        const risk = risks.find((item) => Number(item.color) === Number(player.color))
+          || risks.find((item) => normalizePlayerName(item.player) === normalizePlayerName(player.trackerName || player.name));
         const resourceReady = count(risk?.buildPoints);
         const actionableRisk = resourceReady > 0 || ["danger", "watch", "close"].includes(risk?.status);
-        return `<article class="catanatron-intel-player${player.exactHand ? " is-exact" : ""}">
-          <div class="catanatron-intel-head"><span class="catanatron-player-color color-${Number(player.color || 0)}"></span><span class="catanatron-intel-name">${escapeHtml(player.name || "Unknown player")}</span><span class="catanatron-intel-total">${observed ? `${total} card${total === 1 ? "" : "s"}` : "Hand pending"}</span></div>
+        return `<article class="catanatron-intel-player${player.exactHand ? " is-exact" : ""}${player.identityPending ? " is-syncing" : ""}">
+          <div class="catanatron-intel-head"><span class="catanatron-player-color color-${Number(player.color || 0)}"></span><span class="catanatron-intel-name">${escapeHtml(player.displayName || player.name || "Unknown player")}</span><span class="catanatron-intel-total">${observed ? `${total} card${total === 1 ? "" : "s"}` : "Hand pending"}</span></div>
           <div class="catanatron-range-grid">${rangeMarkup(player)}</div>
-          <div class="catanatron-intel-meta"><span>${player.exactHand ? "Exact hand" : observed ? `<strong>${known}</strong> guaranteed · <strong>${unresolved}</strong> unresolved` : "Waiting for a hand snapshot"}</span>${player.estimateConflict ? `<span class="catanatron-range-conflict">Ranges widened</span>` : ""}${actionableRisk ? `<span class="catanatron-risk-pill catanatron-risk-${escapeHtml(risk.status)}">${resourceReady ? `${resourceReady} VP resource ready` : "Point race watch"}</span>` : ""}</div>
+          <div class="catanatron-intel-meta"><span>${player.identityPending ? "Waiting for a verified tracker identity" : player.exactHand ? "Exact hand" : observed ? `<strong>${known}</strong> guaranteed · <strong>${unresolved}</strong> unresolved` : "Waiting for a hand snapshot"}</span>${player.estimateConflict ? `<span class="catanatron-range-conflict">Ranges widened</span>` : ""}${actionableRisk ? `<span class="catanatron-risk-pill catanatron-risk-${escapeHtml(risk.status)}">${resourceReady ? `${resourceReady} VP resource ready` : "Point race watch"}</span>` : ""}</div>
         </article>`;
       }).join("") : `<p class="catanatron-empty">Waiting for the first complete game state.</p>`}
       </div>
     </section>`;
 }
 
-function watchlistMarkup(tradeWatch) {
+function watchlistMarkup(tradeWatch, players) {
   if (!tradeWatch || tradeWatch.status === "stable") return "";
+  let line = String(tradeWatch.line || "");
+  for (const player of players || []) {
+    if (!player.trackerName || !player.displayName || player.trackerName === player.displayName) continue;
+    line = line.replaceAll(player.trackerName, player.displayName);
+  }
   return `<section class="catanatron-native-section catanatron-watchlist">
     <div class="catanatron-section-title">Watchlist <span class="catanatron-risk-${escapeHtml(tradeWatch.status)}">${escapeHtml(tradeWatch.status)}</span></div>
-    <div class="catanatron-watch-item">${escapeHtml(tradeWatch.line)}</div>
+    <div class="catanatron-watch-item">${escapeHtml(line)}</div>
   </section>`;
 }
 
@@ -289,21 +319,11 @@ class ImmersiveGameUI {
 
   orderedPlayers() {
     const players = this.tracker.players || [];
-    const ordered = [];
-    const seen = new Set();
-    const playerInformation = document.querySelector('[data-player-information-container="true"]');
-    for (const row of playerInformation?.querySelectorAll(ROW_SELECTOR) || []) {
-      const player = matchPlayer(players, row.dataset.playerColor, playerNameFromRow(row));
-      if (!player || seen.has(player)) continue;
-      seen.add(player);
-      ordered.push(player);
-    }
-    for (const player of players) {
-      if (seen.has(player)) continue;
-      seen.add(player);
-      ordered.push(player);
-    }
-    return ordered;
+    const identities = nativePlayerRows().map((row) => ({
+      color: row.dataset.playerColor,
+      name: playerNameFromRow(row),
+    }));
+    return bindPlayersToNativeIdentities(players, identities);
   }
 
   renderPanel(panel) {
@@ -333,7 +353,7 @@ class ImmersiveGameUI {
       </header>
       ${enabled ? "" : `<div class="catanatron-native-actions"><button class="catanatron-native-button" type="button" data-catanatron-action="toggle-tracking">Enable counting</button></div>`}
       ${playerIntelMarkup(players, this.tracker.winWatch)}
-      ${watchlistMarkup(this.tracker.tradeWatch)}
+      ${watchlistMarkup(this.tracker.tradeWatch, players)}
       ${devDeckMarkup(this.tracker.devDeck)}
       `;
   }

@@ -131,7 +131,17 @@ function decoratePlayerKnowledge(player) {
     const maximum = !hasObservedTotal && source?.max == null
       ? null
       : Math.max(minimum, safeCount(source?.max ?? minimum));
-    return { resource, minimum, maximum };
+    const hasSuppliedPercentage = source?.presencePct !== null && source?.presencePct !== undefined;
+    const hasSuppliedExpected = source?.expected !== null && source?.expected !== undefined;
+    const suppliedPercentage = Number(source?.presencePct);
+    const suppliedExpected = Number(source?.expected);
+    return {
+      resource,
+      minimum,
+      maximum,
+      presencePct: hasSuppliedPercentage && Number.isFinite(suppliedPercentage) ? Math.min(100, Math.max(0, Math.round(suppliedPercentage))) : null,
+      expected: hasSuppliedExpected && Number.isFinite(suppliedExpected) ? Math.max(0, suppliedExpected) : null,
+    };
   });
   const invalidObservedRanges = hasObservedTotal && (
     candidates.reduce((sum, candidate) => sum + candidate.minimum, 0) > total
@@ -151,6 +161,14 @@ function decoratePlayerKnowledge(player) {
     resourceKnowledge[resource] = {
       min: minimum,
       max: maximum,
+      presencePct: invalidObservedRanges
+        ? null
+        : candidate.presencePct ?? (maximum === 0 ? 0 : minimum > 0 ? 100 : null),
+      expected: invalidObservedRanges
+        ? null
+        : candidate.expected == null || maximum === null
+          ? minimum === maximum ? minimum : null
+          : Math.min(maximum, Math.max(minimum, candidate.expected)),
       state: maximum === null
         ? minimum > 0 ? "guaranteed-plus" : "unknown"
         : maximum === 0
@@ -366,6 +384,8 @@ function calculateResourceRanges(player, handTotal) {
     losses: 0,
     minimums: Array(RESOURCES.length).fill(Infinity),
     maximums: Array(RESOURCES.length).fill(-Infinity),
+    presenceWays: Array(RESOURCES.length).fill(0),
+    amountSums: Array(RESOURCES.length).fill(0),
     ways: 1,
   });
 
@@ -383,14 +403,20 @@ function calculateResourceRanges(player, handTotal) {
         if (!existing) {
           const minimums = state.minimums.slice();
           const maximums = state.maximums.slice();
+          const presenceWays = state.presenceWays.slice();
+          const amountSums = state.amountSums.slice();
           minimums[resourceIndex] = amount;
           maximums[resourceIndex] = amount;
+          presenceWays[resourceIndex] = amount > 0 ? state.ways : 0;
+          amountSums[resourceIndex] = amount * state.ways;
           nextStates.set(key, {
             total: nextTotal,
             gains,
             losses,
             minimums,
             maximums,
+            presenceWays,
+            amountSums,
             ways: state.ways,
           });
           continue;
@@ -398,9 +424,13 @@ function calculateResourceRanges(player, handTotal) {
         for (let index = 0; index < resourceIndex; index += 1) {
           existing.minimums[index] = Math.min(existing.minimums[index], state.minimums[index]);
           existing.maximums[index] = Math.max(existing.maximums[index], state.maximums[index]);
+          existing.presenceWays[index] = Math.min(Number.MAX_SAFE_INTEGER, existing.presenceWays[index] + state.presenceWays[index]);
+          existing.amountSums[index] = Math.min(Number.MAX_SAFE_INTEGER, existing.amountSums[index] + state.amountSums[index]);
         }
         existing.minimums[resourceIndex] = Math.min(existing.minimums[resourceIndex], amount);
         existing.maximums[resourceIndex] = Math.max(existing.maximums[resourceIndex], amount);
+        existing.presenceWays[resourceIndex] = Math.min(Number.MAX_SAFE_INTEGER, existing.presenceWays[resourceIndex] + (amount > 0 ? state.ways : 0));
+        existing.amountSums[resourceIndex] = Math.min(Number.MAX_SAFE_INTEGER, existing.amountSums[resourceIndex] + amount * state.ways);
         existing.ways = Math.min(Number.MAX_SAFE_INTEGER, existing.ways + state.ways);
       }
     }
@@ -409,6 +439,8 @@ function calculateResourceRanges(player, handTotal) {
 
   const minimums = Array(RESOURCES.length).fill(Infinity);
   const maximums = Array(RESOURCES.length).fill(0);
+  const presenceWays = Array(RESOURCES.length).fill(0);
+  const amountSums = Array(RESOURCES.length).fill(0);
   let feasibleCount = 0;
   for (const state of states.values()) {
     if (state.total !== total) continue;
@@ -417,13 +449,20 @@ function calculateResourceRanges(player, handTotal) {
     for (let index = 0; index < RESOURCES.length; index += 1) {
       minimums[index] = Math.min(minimums[index], state.minimums[index]);
       maximums[index] = Math.max(maximums[index], state.maximums[index]);
+      presenceWays[index] = Math.min(Number.MAX_SAFE_INTEGER, presenceWays[index] + state.presenceWays[index]);
+      amountSums[index] = Math.min(Number.MAX_SAFE_INTEGER, amountSums[index] + state.amountSums[index]);
     }
   }
   const ranges = {};
   for (let index = 0; index < RESOURCES.length; index += 1) {
     ranges[RESOURCES[index]] = feasibleCount
-      ? { min: minimums[index], max: maximums[index] }
-      : { min: 0, max: total };
+      ? {
+          min: minimums[index],
+          max: maximums[index],
+          presencePct: Math.round((presenceWays[index] / feasibleCount) * 100),
+          expected: Number((amountSums[index] / feasibleCount).toFixed(2)),
+        }
+      : { min: 0, max: total, presencePct: null, expected: null };
   }
   return { ranges, feasibleCount, drift };
 }
@@ -440,7 +479,12 @@ function reconcileWithHands(state, hands = {}) {
       const exact = mapCounts(hand.cards);
       player.cards = exact;
       player.ledger = { ...exact };
-      player.cardRanges = Object.fromEntries(RESOURCES.map((resource) => [resource, { min: exact[resource], max: exact[resource] }]));
+      player.cardRanges = Object.fromEntries(RESOURCES.map((resource) => [resource, {
+        min: exact[resource],
+        max: exact[resource],
+        presencePct: exact[resource] > 0 ? 100 : 0,
+        expected: exact[resource],
+      }]));
       player.snapshotUnknown = 0;
       player.exactHand = true;
       player.estimateConflict = 0;

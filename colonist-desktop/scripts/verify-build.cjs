@@ -15,6 +15,8 @@ assert(output.includes("Catanatron HUD"), "bundled preload should contain the HU
 assert(output.includes("catanatron-native-intelligence"), "bundled preload should contain the native in-game intelligence panel");
 assert(output.includes("catanatron-player-list"), "bundled preload should contain the left resource knowledge list");
 assert(output.includes("Resource knowledge"), "bundled preload should prioritize card knowledge");
+assert(output.includes("bindPlayersToNativeIdentities"), "bundled preload should bind tracker data to native Colonist identities");
+assert(output.includes("Percent shows feasible hands"), "bundled preload should explain resource likelihood percentages");
 assert(output.includes("integratedColumnWidth"), "bundled preload should calculate a responsive intelligence column");
 assert(output.includes("catanatron-intelligence-button"), "bundled preload should contain the compact nonblocking intelligence control");
 assert(output.includes("catanatron-game-integrated"), "bundled preload should reflow the game beside the intelligence column");
