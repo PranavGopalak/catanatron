@@ -6,7 +6,7 @@ const {
   RESOURCE_UI,
   buildHandGroups,
   count,
-  isSafeSideDock,
+  integratedColumnWidth,
   knowledgeFor,
   matchPlayer,
   normalizePlayerName,
@@ -90,7 +90,7 @@ function playerIntelMarkup(players, winWatch) {
   const riskByPlayer = new Map((winWatch || []).map((item) => [`${Number(item.color)}:${normalizePlayerName(item.player)}`, item]));
   return `
     <section class="catanatron-native-section">
-      <div class="catanatron-section-title">Player intelligence <span>${players.length} players</span></div>
+      <div class="catanatron-section-title">Hands at a glance <span>${players.length} players</span></div>
       ${players.length ? players.map((player) => {
         const total = count(player.handTotal ?? player.knownCards);
         const known = count(player.knownCards);
@@ -239,18 +239,19 @@ class ImmersiveGameUI {
   ensureIntelligenceSurface() {
     const game = document.querySelector("#ui-game");
     if (!game) return null;
-    const dock = document.getElementById("in_game_ad_left");
-    const mode = isSafeSideDock(game.getBoundingClientRect(), dock?.getBoundingClientRect()) ? "dock" : "compact";
+    const playerCount = document.querySelectorAll(ROW_SELECTOR).length;
+    const columnWidth = integratedColumnWidth(window.innerWidth, playerCount);
+    const mode = columnWidth ? "integrated" : "compact";
     this.switchSurfaceMode(mode);
     document.documentElement.classList.add("catanatron-game-immersive");
     const panel = this.ensurePanelElement();
-    panel.className = mode === "dock" ? "is-docked" : "is-popover";
-    if (mode === "dock") {
-      dock.classList.add("catanatron-intelligence-dock");
-      for (const child of dock.children) {
-        if (child !== panel) this.rememberAndSetDisplay(child, "none");
-      }
-      if (panel.parentElement !== dock) dock.appendChild(panel);
+    panel.className = mode === "integrated" ? "is-integrated" : "is-popover";
+    if (mode === "integrated") {
+      document.documentElement.classList.add("catanatron-game-integrated");
+      document.documentElement.style.setProperty("--cat-integrated-width", `${columnWidth}px`);
+      this.rememberAndSetDisplay(document.getElementById("in_game_ad_left"), "none");
+      this.rememberAndSetDisplay(document.getElementById("in_game_ad_right"), "none");
+      if (panel.parentElement !== document.body) document.body.appendChild(panel);
       panel.hidden = false;
       document.getElementById(COMPACT_BUTTON_ID)?.remove();
     } else {
@@ -275,7 +276,8 @@ class ImmersiveGameUI {
     }
     this.trimmedNodes.clear();
     document.documentElement.classList.remove("catanatron-game-immersive");
-    document.querySelector(".catanatron-intelligence-dock")?.classList.remove("catanatron-intelligence-dock");
+    document.documentElement.classList.remove("catanatron-game-integrated");
+    document.documentElement.style.removeProperty("--cat-integrated-width");
   }
 
   setActive(active) {
@@ -316,8 +318,8 @@ class ImmersiveGameUI {
       <div class="catanatron-native-actions">
         ${enabled ? `<button class="catanatron-native-button secondary" type="button" data-catanatron-action="reset-tracker">New game</button>` : `<button class="catanatron-native-button" type="button" data-catanatron-action="toggle-tracking">Enable counting</button>`}
       </div>
-      ${devDeckMarkup(this.tracker.devDeck)}
       ${playerIntelMarkup(this.tracker.players || [], this.tracker.winWatch)}
+      ${devDeckMarkup(this.tracker.devDeck)}
       ${eventsMarkup(this.tracker.recentEvents, this.tracker.tradeWatch)}`;
   }
 

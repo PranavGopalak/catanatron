@@ -37,11 +37,22 @@
 
 #catanatron-native-intelligence[hidden] { display: none !important; }
 
-#catanatron-native-intelligence.is-docked {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+#catanatron-native-intelligence.is-integrated {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: var(--cat-integrated-width, 22vw);
+  height: 100dvh;
+  border-right-width: 2px;
+}
+
+.catanatron-game-integrated #ui-game {
+  left: var(--cat-integrated-width, 22vw) !important;
+  right: 0 !important;
+  width: calc(100vw - var(--cat-integrated-width, 22vw)) !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin-right: 0 !important;
+  margin-left: 0 !important;
 }
 
 #catanatron-native-intelligence.is-popover {
@@ -53,11 +64,6 @@
   border: 2px solid rgba(55, 67, 77, .45);
   border-radius: 7px;
   box-shadow: 0 8px 24px rgba(21, 34, 43, .38);
-}
-
-.catanatron-intelligence-dock {
-  overflow: hidden !important;
-  background: transparent !important;
 }
 
 #catanatron-intelligence-button {
@@ -101,11 +107,11 @@
 }
 
 .catanatron-native-header {
-  min-height: 54px;
+  min-height: 62px;
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 9px 9px 8px;
+  padding: 10px 12px;
   color: #fff;
   background: linear-gradient(#328db7, var(--cat-blue-dark));
   border-bottom: 2px solid #0d5378;
@@ -113,8 +119,8 @@
 }
 
 .catanatron-native-mark {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
   flex: none;
@@ -123,20 +129,20 @@
   border: 2px solid rgba(255, 255, 255, .7);
   border-radius: 50%;
   box-shadow: 0 1px 2px rgba(0, 0, 0, .35);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 900;
 }
 
 .catanatron-native-title { min-width: 0; flex: 1; }
-.catanatron-native-title strong { display: block; font-size: 11px; line-height: 1.1; }
-.catanatron-native-title span { display: block; margin-top: 3px; overflow: hidden; font-size: 8px; line-height: 1.1; opacity: .9; text-overflow: ellipsis; white-space: nowrap; }
+.catanatron-native-title strong { display: block; font-size: 13px; line-height: 1.1; }
+.catanatron-native-title span { display: block; margin-top: 3px; overflow: hidden; font-size: 9px; line-height: 1.1; opacity: .9; text-overflow: ellipsis; white-space: nowrap; }
 .catanatron-live-dot { width: 7px; height: 7px; flex: none; background: #6fd083; border: 1px solid rgba(255, 255, 255, .8); border-radius: 50%; box-shadow: 0 0 0 2px rgba(111, 208, 131, .25); }
 .catanatron-live-dot.is-off { background: #a6acb0; box-shadow: none; }
 .catanatron-live-dot.is-error { background: #ef665d; }
 
-.catanatron-native-actions { padding: 8px 9px 0; }
+.catanatron-native-actions { padding: 9px 11px 0; }
 .catanatron-native-button {
-  min-height: 29px;
+  min-height: 32px;
   width: 100%;
   padding: 0 8px;
   color: #fff;
@@ -145,7 +151,7 @@
   border-radius: 5px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, .2);
   cursor: pointer;
-  font: 800 9px/1 var(--cat-native-font, inherit);
+  font: 800 10px/1 var(--cat-native-font, inherit);
   text-shadow: 0 1px 1px rgba(0, 0, 0, .2);
 }
 .catanatron-native-button.secondary { background: linear-gradient(#4296bd, var(--cat-blue)); border-color: var(--cat-blue-dark); }
@@ -154,41 +160,41 @@
 .catanatron-native-button:disabled { cursor: wait; opacity: .6; }
 .catanatron-native-button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
-.catanatron-native-section { padding: 9px; border-bottom: 1px solid var(--cat-line); }
+.catanatron-native-section { padding: 11px; border-bottom: 1px solid var(--cat-line); }
 .catanatron-native-section:last-child { border-bottom: 0; }
-.catanatron-section-title { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px; color: #65655f; font-size: 8px; font-weight: 900; letter-spacing: .055em; text-transform: uppercase; }
+.catanatron-section-title { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px; color: #65655f; font-size: 10px; font-weight: 900; letter-spacing: .055em; text-transform: uppercase; }
 .catanatron-section-title span { color: var(--cat-blue-dark); letter-spacing: 0; }
 
-.catanatron-dev-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin-bottom: 6px; }
-.catanatron-dev-summary div { padding: 5px 2px; text-align: center; background: var(--cat-paper); border: 1px solid #c8c0b2; border-radius: 4px; box-shadow: inset 0 1px #fff; }
-.catanatron-dev-summary strong { display: block; color: var(--cat-blue-dark); font-size: 12px; line-height: 1; }
-.catanatron-dev-summary span { display: block; margin-top: 2px; color: var(--cat-muted); font-size: 7px; }
-.catanatron-dev-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px; padding: 3px 1px; color: #555a5e; font-size: 8px; text-transform: capitalize; }
-.catanatron-dev-row strong { color: #41484e; font-size: 8px; font-weight: 800; }
+.catanatron-dev-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 7px; }
+.catanatron-dev-summary div { padding: 7px 3px; text-align: center; background: var(--cat-paper); border: 1px solid #c8c0b2; border-radius: 4px; box-shadow: inset 0 1px #fff; }
+.catanatron-dev-summary strong { display: block; color: var(--cat-blue-dark); font-size: 14px; line-height: 1; }
+.catanatron-dev-summary span { display: block; margin-top: 3px; color: var(--cat-muted); font-size: 8px; }
+.catanatron-dev-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px; padding: 3px 1px; color: #555a5e; font-size: 9px; text-transform: capitalize; }
+.catanatron-dev-row strong { color: #41484e; font-size: 9px; font-weight: 800; }
 .catanatron-dev-row.is-exhausted { color: #99958d; text-decoration: line-through; }
 
-.catanatron-intel-player { padding: 6px; margin-top: 6px; background: var(--cat-paper); border: 1px solid #c6bdaf; border-radius: 5px; box-shadow: 0 1px 2px rgba(50, 50, 40, .12), inset 0 1px #fff; }
+.catanatron-intel-player { padding: 8px; margin-top: 7px; background: var(--cat-paper); border: 1px solid #c6bdaf; border-radius: 5px; box-shadow: 0 1px 2px rgba(50, 50, 40, .12), inset 0 1px #fff; }
 .catanatron-intel-player:first-of-type { margin-top: 0; }
 .catanatron-intel-head { display: flex; align-items: center; gap: 5px; }
-.catanatron-player-color { width: 9px; height: 9px; flex: none; border: 1px solid rgba(0, 0, 0, .28); border-radius: 50%; background: #aab5c3; }
+.catanatron-player-color { width: 11px; height: 11px; flex: none; border: 1px solid rgba(0, 0, 0, .28); border-radius: 50%; background: #aab5c3; }
 .catanatron-player-color.color-1 { background: #db4f45; }
 .catanatron-player-color.color-2 { background: #3d78cf; }
 .catanatron-player-color.color-3 { background: #e3aa38; }
 .catanatron-player-color.color-4 { background: #4c9c60; }
 .catanatron-player-color.color-5 { background: #343c45; }
-.catanatron-intel-name { min-width: 0; flex: 1; overflow: hidden; color: #3f474e; font-size: 9px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
-.catanatron-intel-total { color: var(--cat-muted); font-size: 8px; font-weight: 700; }
-.catanatron-range-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px; margin-top: 5px; }
-.catanatron-range-chip { min-width: 0; padding: 3px 0; text-align: center; background: #e7e2d8; border: 1px solid #cbc3b5; border-radius: 3px; }
-.catanatron-range-chip span { display: block; color: #767670; font-size: 6px; font-weight: 900; }
-.catanatron-range-chip strong { display: block; margin-top: 1px; color: #485057; font-size: 7px; font-weight: 900; line-height: 1; }
+.catanatron-intel-name { min-width: 0; flex: 1; overflow: hidden; color: #3f474e; font-size: 11px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.catanatron-intel-total { color: var(--cat-muted); font-size: 10px; font-weight: 800; }
+.catanatron-range-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; margin-top: 7px; }
+.catanatron-range-chip { min-width: 0; padding: 5px 0 4px; text-align: center; background: #e7e2d8; border: 1px solid #cbc3b5; border-radius: 4px; }
+.catanatron-range-chip span { display: block; color: #767670; font-size: 7px; font-weight: 900; }
+.catanatron-range-chip strong { display: block; margin-top: 2px; color: #485057; font-size: 10px; font-weight: 900; line-height: 1; }
 .catanatron-range-chip.is-guaranteed,
 .catanatron-range-chip.is-exact { background: #dcebdc; border-color: #8db093; }
 .catanatron-range-chip.is-guaranteed strong,
 .catanatron-range-chip.is-exact strong { color: #29653b; }
 .catanatron-range-chip.is-possible { background: #fff2d8; border-color: #d7b86e; }
 .catanatron-range-chip.is-impossible { opacity: .42; }
-.catanatron-intel-meta { margin-top: 5px; color: var(--cat-muted); font-size: 7px; line-height: 1.35; }
+.catanatron-intel-meta { margin-top: 6px; color: var(--cat-muted); font-size: 9px; line-height: 1.4; }
 .catanatron-intel-meta strong { color: #4c5358; }
 .catanatron-risk-danger { color: var(--cat-danger) !important; font-weight: 800; }
 .catanatron-risk-watch,
@@ -196,10 +202,10 @@
 .catanatron-risk-stable { color: var(--cat-good) !important; font-weight: 800; }
 .catanatron-risk-unknown { color: var(--cat-blue-dark) !important; font-weight: 800; }
 
-.catanatron-event { position: relative; padding: 0 0 6px 9px; color: #555c61; font-size: 8px; line-height: 1.35; }
+.catanatron-event { position: relative; padding: 0 0 7px 10px; color: #555c61; font-size: 9px; line-height: 1.4; }
 .catanatron-event:last-child { padding-bottom: 0; }
 .catanatron-event::before { content: ""; position: absolute; top: 4px; left: 0; width: 4px; height: 4px; background: var(--cat-orange); border: 1px solid var(--cat-orange-dark); border-radius: 50%; }
-.catanatron-empty { margin: 0; color: var(--cat-muted); font-size: 8px; line-height: 1.45; }
+.catanatron-empty { margin: 0; color: var(--cat-muted); font-size: 9px; line-height: 1.45; }
 
 .catanatron-original-resource-card {
   position: relative !important;
@@ -282,12 +288,12 @@
 .catanatron-hand-zero { grid-column: 1 / -1; color: #fff; font-size: 6px; }
 
 @media (max-width: 1100px), (max-height: 700px) {
-  .catanatron-native-header { min-height: 48px; padding: 7px; }
-  .catanatron-native-mark { width: 25px; height: 25px; }
-  .catanatron-native-actions { padding: 6px 7px 0; }
-  .catanatron-native-section { padding: 7px; }
-  .catanatron-dev-summary div { padding: 4px 1px; }
-  .catanatron-intel-player { padding: 5px; margin-top: 4px; }
+  .catanatron-native-header { min-height: 54px; padding: 8px 9px; }
+  .catanatron-native-mark { width: 28px; height: 28px; }
+  .catanatron-native-actions { padding: 7px 8px 0; }
+  .catanatron-native-section { padding: 8px; }
+  .catanatron-dev-summary div { padding: 5px 2px; }
+  .catanatron-intel-player { padding: 6px; margin-top: 5px; }
   .catanatron-hand-card { height: 15px; }
 }
 

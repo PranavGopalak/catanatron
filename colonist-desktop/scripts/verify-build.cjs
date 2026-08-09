@@ -15,11 +15,12 @@ assert(output.includes("Catanatron HUD"), "bundled preload should contain the HU
 assert(output.includes("catanatron-native-intelligence"), "bundled preload should contain the native in-game intelligence panel");
 assert(output.includes("catanatron-hand-strip"), "bundled preload should contain inline hand annotations");
 assert(output.includes("catanatron-card-count"), "bundled preload should group repeated cards with count badges");
-assert(output.includes("isSafeSideDock"), "bundled preload should collision-check a side dock before using it");
+assert(output.includes("integratedColumnWidth"), "bundled preload should calculate a bounded responsive intelligence column");
 assert(output.includes("catanatron-intelligence-button"), "bundled preload should contain the compact nonblocking intelligence control");
-assert(output.includes("dock.appendChild(panel)"), "bundled preload should use only a verified advertisement gutter for the full panel");
+assert(output.includes("catanatron-game-integrated"), "bundled preload should reflow the game beside the intelligence column");
+assert(output.includes("document.body.appendChild(panel)"), "bundled preload should mount the integrated column at page level");
 assert(output.includes("original.appendChild(strip)"), "bundled preload should annotate the original resource-card footprint");
-assert(!output.includes('rememberAndSetDisplay(document.getElementById("in_game_ad_right")'), "bundled preload must preserve Colonist's right layout column");
+assert(output.includes('rememberAndSetDisplay(document.getElementById("in_game_ad_right")'), "bundled preload should reclaim the right advertisement gutter for readable intelligence");
 assert(!output.includes('rememberAndSetDisplay(document.getElementById("in_game_ad_bottom")'), "bundled preload must preserve Colonist's bottom layout column");
 assert(output.includes("Cannot have:"), "bundled preload should expose impossible resource deductions");
 assert(output.includes("Authorized experiment"), "bundled preload should disclose the experimental counting boundary");

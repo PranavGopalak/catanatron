@@ -4,16 +4,17 @@ A dedicated macOS browser for `https://colonist.io/` with local game intelligenc
 
 ## Current milestone
 
-Version 0.4.1 provides:
+Version 0.5.0 provides:
 
 * A persistent, dedicated Electron browser profile for Colonist
 * A temporary, HTTPS-only Apple ID authentication path initiated exclusively by Colonist
 * Strict navigation, popup, download, permission, renderer, and IPC boundaries
 * Guaranteed resource cards inserted into each player’s real Colonist hand row
 * One compact card per known resource type, plus one unresolved card back, each with a count badge
-* A Colonist styled intelligence panel mounted only inside a verified, nonoverlapping left advertisement slot
-* A compact in-game intelligence button when Colonist has no safe side slot, such as Beginner Mode
-* Native right and bottom layout columns preserved so Colonist keeps its original geometry
+* A readable multiplayer intelligence column that occupies 22 percent of the rendered page and scales with the window
+* Hands and resource ranges prioritized at the top for immediate scanning
+* Side advertisement gutters reclaimed while the board, hand, chat, controls, and player rows reflow beside the column
+* A compact in-game intelligence button for Beginner Mode and narrow windows
 * Consent gated, local WebSocket card counting for an authorized experiment
 * Exact hand totals for every player and exact resource composition for the local player
 * Bounded resource ranges for opponents when individual card identities are hidden
@@ -61,7 +62,9 @@ Outside a live game, use the setup HUD to enable counting, manage the manual tim
 
 Inside a live game, the setup HUD automatically gets out of the way. Known resources are grouped by type inside Colonist’s original resource-card footprint, with a count badge on every card. Any unresolved resources use one card back with their remaining count. The original player row keeps the same size and position.
 
-When Colonist provides a real left advertisement slot that does not overlap the game, a cream and blue intelligence panel replaces only that slot. The right advertisement, board, chat, controls, and player rows keep their native geometry. When no safe slot exists, such as Beginner Mode, a small C button beside the native settings control opens the same intelligence on demand. Resource ranges, resources a player cannot have, development card usage, point build risk, trade risk, and recent deductions remain available in both modes. If counting is off, the intelligence surface offers a direct Enable counting control.
+Multiplayer games use a cream and blue intelligence column on the left. It occupies 22 percent of the rendered page and reclaims the side advertisement gutters, while Colonist’s board, hand, chat, controls, and player rows reflow into the remaining space. The layout requires at least 880 CSS pixels for the native game and automatically returns to compact mode when that guarantee cannot be met. Hands appear first, followed by development cards, trade risk, and recent deductions.
+
+Beginner Mode and narrow windows use a small C button beside the native settings control because tutorial objectives occupy Colonist’s left edge. The button opens the same intelligence on demand without permanently covering the tutorial. Resource ranges, resources a player cannot have, development card usage, point build risk, trade risk, and recent deductions remain available in both modes. If counting is off, the intelligence surface offers a direct Enable counting control.
 
 Select New Game to clear the current ledger manually. The settings tab can disable and clear capture, change panel opacity, center the panel, or reset all locally saved HUD data.
 

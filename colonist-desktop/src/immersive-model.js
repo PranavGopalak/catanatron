@@ -72,15 +72,13 @@ function playerDigest(player) {
   });
 }
 
-function isSafeSideDock(gameRect, dockRect) {
-  if (!gameRect || !dockRect) return false;
-  const gameLeft = Number(gameRect.left);
-  const dockLeft = Number(dockRect.left);
-  const dockRight = Number(dockRect.right);
-  const dockWidth = Number(dockRect.width);
-  const dockHeight = Number(dockRect.height);
-  if (![gameLeft, dockLeft, dockRight, dockWidth, dockHeight].every(Number.isFinite)) return false;
-  return dockWidth >= 100 && dockHeight >= 300 && dockLeft >= -2 && dockRight <= gameLeft + 2;
+function integratedColumnWidth(viewportWidth, playerCount) {
+  const width = Number(viewportWidth);
+  const players = count(playerCount);
+  if (!Number.isFinite(width) || width <= 0 || players <= 1) return 0;
+  const desired = Math.round(width * 0.22);
+  if (desired < 220 || width - desired <= 880) return 0;
+  return desired;
 }
 
 module.exports = {
@@ -90,7 +88,7 @@ module.exports = {
   count,
   guaranteedCount,
   knowledgeFor,
-  isSafeSideDock,
+  integratedColumnWidth,
   matchPlayer,
   normalizePlayerName,
   playerDigest,
