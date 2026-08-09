@@ -4,11 +4,14 @@ const path = require("node:path");
 const { execFile } = require("node:child_process");
 const { promisify } = require("node:util");
 const { packager } = require("@electron/packager");
+const { flipFuses } = require("@electron/fuses");
 const {
-  flipFuses,
-  FuseVersion,
-  FuseV1Options,
-} = require("@electron/fuses");
+  APP_ID,
+  APP_NAME,
+  COPYRIGHT,
+  HARDENED_FUSES,
+  PACKAGER_IGNORE,
+} = require("./package-shared.cjs");
 
 const root = path.join(__dirname, "..");
 const execFileAsync = promisify(execFile);
@@ -16,9 +19,10 @@ const execFileAsync = promisify(execFile);
 async function main() {
   const outputPaths = await packager({
     dir: root,
-    name: "Catanatron Colonist",
-    appBundleId: "dev.pranavg.catanatron.colonist",
+    name: APP_NAME,
+    appBundleId: APP_ID,
     appCategoryType: "public.app-category.board-games",
+    appCopyright: COPYRIGHT,
     platform: "darwin",
     arch: process.arch,
     out: path.join(root, "release"),
@@ -30,24 +34,12 @@ async function main() {
         NSAllowsArbitraryLoads: false,
       },
     },
-    ignore: [
-      /^\/release($|\/)/,
-      /^\/tests($|\/)/,
-    ],
+    ignore: PACKAGER_IGNORE,
   });
 
   for (const outputPath of outputPaths) {
-    const appPath = path.join(outputPath, "Catanatron Colonist.app");
-    await flipFuses(appPath, {
-      version: FuseVersion.V1,
-      [FuseV1Options.RunAsNode]: false,
-      [FuseV1Options.EnableCookieEncryption]: true,
-      [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
-      [FuseV1Options.EnableNodeCliInspectArguments]: false,
-      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
-      [FuseV1Options.OnlyLoadAppFromAsar]: true,
-      [FuseV1Options.GrantFileProtocolExtraPrivileges]: false,
-    });
+    const appPath = path.join(outputPath, `${APP_NAME}.app`);
+    await flipFuses(appPath, HARDENED_FUSES);
     await execFileAsync("codesign", ["--force", "--deep", "--sign", "-", appPath]);
     await execFileAsync("codesign", ["--verify", "--deep", "--strict", appPath]);
     console.log(`Packaged and hardened ${outputPath}`);

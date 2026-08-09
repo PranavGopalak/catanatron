@@ -51,3 +51,9 @@ test("loads the first Colonist page before restoring persisted capture", () => {
     "debugger capture must not stall the initial renderer startup"
   );
 });
+
+test("uses a stable native identity and icon on Windows", () => {
+  assert(mainSource.includes('WINDOWS_APP_ID = "dev.pranavg.catanatron.colonist"'));
+  assert(mainSource.includes('process.platform === "win32" ? WINDOWS_ICON_PATH : undefined'));
+  assert(mainSource.includes('process.platform === "win32") app.setAppUserModelId(WINDOWS_APP_ID)'));
+});

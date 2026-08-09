@@ -3,6 +3,7 @@
 const { ipcRenderer } = require("electron");
 const styles = require("./hud.css");
 const { ImmersiveGameUI } = require("./immersive-ui");
+const { platformUi } = require("./platform-ui");
 const {
   DICE_ODDS,
   clamp,
@@ -12,6 +13,7 @@ const {
 
 const HOST_ID = "catanatron-colonist-hud";
 const SAVE_DELAY_MS = 250;
+const PLATFORM_UI = platformUi();
 const RESOURCE_LABELS = {
   brick: ["BR", "Brick"],
   lumber: ["LU", "Lumber"],
@@ -175,7 +177,7 @@ function notesMarkup(notes) {
   return `
     <p class="hud-eyebrow">Private and local</p>
     <h2 class="hud-heading">Game notes</h2>
-    <p class="hud-description">Keep reminders in this app profile. Notes never leave your Mac.</p>
+    <p class="hud-description">Keep reminders in this app profile. Notes never leave your ${PLATFORM_UI.deviceNoun}.</p>
     <textarea class="hud-notes" maxlength="12000" placeholder="Example: Watch the ore port, remember the 8 grain block…" aria-label="Game notes"></textarea>
     <div class="hud-save-status" data-save-status>${notes ? "Saved locally" : "Ready"}</div>`;
 }
@@ -201,7 +203,7 @@ function settingsMarkup(state, tracker, awaitingReset) {
     </div>
     <div class="hud-setting">
       <div class="hud-setting-head"><span>Show or hide shortcut</span></div>
-      <span class="hud-shortcut">⌘ ⇧ H</span>
+      <span class="hud-shortcut" title="${PLATFORM_UI.shortcutLabel}">${PLATFORM_UI.shortcutGlyphs}</span>
     </div>
     <div class="hud-setting">
       <div class="hud-setting-head"><span>Local HUD data</span></div>

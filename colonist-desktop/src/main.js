@@ -20,6 +20,8 @@ const { emptyCounterState } = require("./tracker-state");
 const { ColonistWebSocketCapture } = require("./websocket-capture");
 
 const APP_PARTITION = "persist:catanatron-colonist";
+const WINDOWS_APP_ID = "dev.pranavg.catanatron.colonist";
+const WINDOWS_ICON_PATH = path.join(__dirname, "..", "assets", "icon.png");
 const PRELOAD_PATH = path.join(__dirname, "..", "dist", "preload.cjs");
 const DEMO_MODE = !app.isPackaged && process.env.CATANATRON_TRACKER_DEMO === "1";
 
@@ -103,6 +105,7 @@ function createWindow() {
     minHeight: 620,
     title: "Catanatron Colonist",
     backgroundColor: "#07111f",
+    icon: process.platform === "win32" ? WINDOWS_ICON_PATH : undefined,
     autoHideMenuBar: true,
     show: false,
     webPreferences: {
@@ -195,6 +198,7 @@ function registerIpc() {
 
 app.whenReady().then(() => {
   app.setName("Catanatron Colonist");
+  if (process.platform === "win32") app.setAppUserModelId(WINDOWS_APP_ID);
   stateStore = new HudStateStore(app.getPath("userData"));
   configureSession(session.fromPartition(APP_PARTITION));
   registerIpc();

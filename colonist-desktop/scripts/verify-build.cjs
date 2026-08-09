@@ -9,6 +9,11 @@ const outputPath = path.join(root, "dist", "preload.cjs");
 const mainOutputPath = path.join(root, "dist", "main.cjs");
 const output = fs.readFileSync(outputPath, "utf8");
 const mainOutput = fs.readFileSync(mainOutputPath, "utf8");
+const pngIconPath = path.join(root, "assets", "icon.png");
+const windowsIconPath = path.join(root, "assets", "icon.ico");
+
+assert.equal(fs.readFileSync(pngIconPath).subarray(1, 4).toString("ascii"), "PNG", "runtime icon should be a PNG");
+assert.equal(fs.readFileSync(windowsIconPath).readUInt16LE(2), 1, "Windows icon should be an ICO resource");
 
 assert(output.length > 15000, "bundled preload should contain the complete HUD");
 assert(output.includes("Catanatron HUD"), "bundled preload should contain the HUD markup");
@@ -28,12 +33,15 @@ assert(output.includes('window.addEventListener("resize"'), "bundled preload sho
 assert(!output.includes("catanatron-hand-strip"), "bundled preload must leave native player hands unchanged");
 assert(!output.includes("original.appendChild(strip)"), "bundled preload must not inject into native player rows");
 assert(output.includes("Authorized experiment"), "bundled preload should disclose the experimental counting boundary");
+assert(output.includes("Ctrl + Shift + H"), "bundled preload should contain the Windows shortcut label");
 assert(!output.includes("page-websocket-hook"), "desktop MVP must not bundle the WebSocket hook");
 assert(!output.includes("MutationObserver visible page text"), "desktop MVP must not bundle page capture code");
 assert(mainOutput.includes("Network.webSocketFrameReceived"), "main bundle should include browser-process WebSocket capture");
 assert(mainOutput.includes("buildCounterState"), "main bundle should include normalized card counting");
 assert(mainOutput.includes("buildDevDeckWatch"), "main bundle should include development deck inference");
 assert(mainOutput.includes("buildWinWatch"), "main bundle should include point build risk inference");
+assert(mainOutput.includes("setAppUserModelId"), "main bundle should set a stable Windows application identity");
+assert(mainOutput.includes('"assets", "icon.png"'), "main bundle should use the Windows runtime icon");
 
 console.log(`Verified ${path.relative(root, outputPath)} (${output.length} bytes)`);
 console.log(`Verified ${path.relative(root, mainOutputPath)} (${mainOutput.length} bytes)`);

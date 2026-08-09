@@ -1,12 +1,13 @@
 # Catanatron Colonist Desktop
 
-A dedicated macOS browser for `https://colonist.io/` with local game intelligence rendered directly into Colonist’s live interface.
+A dedicated macOS and Windows browser for `https://colonist.io/` with local game intelligence rendered directly into Colonist’s live interface.
 
 ## Current milestone
 
-Version 0.6.1 provides:
+Version 0.7.0 provides:
 
 * A persistent, dedicated Electron browser profile for Colonist
+* Native macOS and 64-bit Windows application packages with hardened Electron fuses
 * A temporary, HTTPS-only Apple ID authentication path initiated exclusively by Colonist
 * Strict navigation, popup, download, permission, renderer, and IPC boundaries
 * A dedicated left intelligence column with no mutations inside Colonist’s native player rows
@@ -30,7 +31,7 @@ Version 0.6.1 provides:
 * A manual turn timer
 * Two-dice probability reference
 * Locally persisted notes
-* Adjustable HUD opacity and a `Command + Shift + H` visibility shortcut
+* Adjustable HUD opacity with `Command + Shift + H` on macOS and `Ctrl + Shift + H` on Windows
 * A complete local test and packaging workflow
 
 Counting is off by default. When the user explicitly enables the authorized experiment, the Electron main process captures binary WebSocket frames through Chromium's debugging protocol and decodes them with the existing `colonist-page-watcher/src/ws-core.js` implementation. The app never performs game actions.
@@ -39,7 +40,7 @@ Raw frames stay in volatile main-process memory for the current session. Only a 
 
 ## Requirements
 
-* macOS
+* macOS, or 64-bit Windows 10 or Windows 11
 * Node.js 22 or later
 * npm
 
@@ -61,7 +62,7 @@ npm run start:demo
 
 ## Controls
 
-Outside a live game, use the setup HUD to enable counting, manage the manual timer, view dice odds, and edit local notes. It can be dragged, collapsed, hidden, or restored with `Command + Shift + H`.
+Outside a live game, use the setup HUD to enable counting, manage the manual timer, view dice odds, and edit local notes. It can be dragged, collapsed, hidden, or restored with `Command + Shift + H` on macOS or `Ctrl + Shift + H` on Windows.
 
 Inside a live game, the setup HUD automatically gets out of the way. Catanatron renders all resource knowledge and derived game-state analytics in its own left column. It reads native player rows only to mirror their seating order and never inserts elements into them, hides their cards, or changes the right sidebar.
 
@@ -86,6 +87,24 @@ npm run package:mac
 ```
 
 The unpacked application is written to `release/`. Packaging enables Electron's restrictive production fuses and applies an ad hoc local signature. It is suitable for local testing. Public distribution additionally requires an Apple Developer signing identity, hardened runtime configuration, and notarization.
+
+## Package the Windows app
+
+```bash
+npm run package:win
+```
+
+The portable 64-bit application is written to `release/Catanatron Colonist-win32-x64/`, with a transferable ZIP and SHA-256 checksum beside it. Extract the ZIP and open `Catanatron Colonist.exe` on Windows. The build includes native executable metadata, a multi-resolution Windows icon, asar integrity, restrictive Electron fuses, and an `asInvoker` manifest so it never requests administrator access.
+
+For Windows on ARM:
+
+```bash
+npm run package:win:arm64
+```
+
+The package can be structurally verified on any host with `npm run verify:win`. On Windows, `npm run smoke:win` launches the real packaged executable in an isolated temporary profile, waits for a usable native window, validates its version metadata, writes `windows-smoke.json`, and closes the test process.
+
+These local Windows packages are intentionally unsigned. They work as portable applications, but Windows may show a SmartScreen warning until a trusted Authenticode certificate is configured. Public distribution should sign and timestamp the executable after the fuse and asar steps.
 
 ## Security model
 

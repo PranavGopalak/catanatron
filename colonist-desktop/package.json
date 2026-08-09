@@ -1,17 +1,23 @@
 {
   "name": "catanatron-colonist-desktop",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "A security-hardened Colonist desktop browser with immersive, local game-state intelligence.",
   "private": true,
   "main": "dist/main.cjs",
   "scripts": {
+    "assets": "node scripts/generate-icons.cjs",
+    "archive:win": "node scripts/archive-windows.cjs",
     "build": "node scripts/build.cjs",
     "start": "npm run build && electron .",
     "start:demo": "npm run build && CATANATRON_TRACKER_DEMO=1 electron .",
     "test": "node --test tests/*.test.cjs",
     "verify:build": "node scripts/verify-build.cjs",
-    "check": "npm run build && npm test && npm run verify:build",
-    "package:mac": "npm run check && node scripts/package-mac.cjs"
+    "check": "npm run assets && npm run build && npm test && npm run verify:build",
+    "package:mac": "npm run check && node scripts/package-mac.cjs",
+    "package:win": "npm run check && node scripts/package-win.cjs --arch=x64",
+    "package:win:arm64": "npm run check && node scripts/package-win.cjs --arch=arm64",
+    "verify:win": "node scripts/verify-windows-package.cjs",
+    "smoke:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/smoke-windows.ps1"
   },
   "engines": {
     "node": ">=22"
