@@ -55,3 +55,18 @@ test("generates native Windows icons and an isolated launch smoke test", () => {
   assert(smoke.includes("VersionInfo"));
   assert(smoke.includes("windows-smoke.json"));
 });
+
+test("keeps macOS packaging relocatable and archives the app bundle safely", () => {
+  const packager = fs.readFileSync(
+    path.join(root, "scripts", "package-mac.cjs"),
+    "utf8",
+  );
+  const archive = fs.readFileSync(
+    path.join(root, "scripts", "archive-mac.cjs"),
+    "utf8",
+  );
+  assert(packager.includes('optionValue("--out")'));
+  assert(archive.includes("--sequesterRsrc"));
+  assert(archive.includes("--keepParent"));
+  assert(archive.includes("sha256"));
+});

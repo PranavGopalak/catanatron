@@ -84,9 +84,10 @@ This builds the isolated main and preload bundles, runs unit, capture, decoding,
 
 ```bash
 npm run package:mac
+npm run archive:mac
 ```
 
-The unpacked application is written to `release/`. Packaging enables Electron's restrictive production fuses and applies an ad hoc local signature. It is suitable for local testing. Public distribution additionally requires an Apple Developer signing identity, hardened runtime configuration, and notarization.
+The unpacked application is written to `release/`. The archive command creates a ZIP that preserves the macOS application bundle and writes a matching SHA-256 checksum. Pass `--out=/path` to the packaging script when a separate release directory is needed. Packaging enables Electron's restrictive production fuses and applies an ad hoc local signature. It is suitable for local testing. Public distribution additionally requires an Apple Developer signing identity, hardened runtime configuration, and notarization.
 
 ## Package the Windows app
 

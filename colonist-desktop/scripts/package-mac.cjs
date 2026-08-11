@@ -16,7 +16,16 @@ const {
 const root = path.join(__dirname, "..");
 const execFileAsync = promisify(execFile);
 
+function optionValue(name) {
+  const prefix = `${name}=`;
+  const option = process.argv.find((argument) => argument.startsWith(prefix));
+  return option ? option.slice(prefix.length) : null;
+}
+
 async function main() {
+  const outputRoot = path.resolve(
+    optionValue("--out") || path.join(root, "release"),
+  );
   const outputPaths = await packager({
     dir: root,
     name: APP_NAME,
@@ -25,7 +34,7 @@ async function main() {
     appCopyright: COPYRIGHT,
     platform: "darwin",
     arch: process.arch,
-    out: path.join(root, "release"),
+    out: outputRoot,
     overwrite: true,
     prune: true,
     asar: true,

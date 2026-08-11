@@ -6,6 +6,7 @@
   "main": "dist/main.cjs",
   "scripts": {
     "assets": "node scripts/generate-icons.cjs",
+    "archive:mac": "node scripts/archive-mac.cjs",
     "archive:win": "node scripts/archive-windows.cjs",
     "build": "node scripts/build.cjs",
     "start": "npm run build && electron .",
