@@ -4,7 +4,7 @@ A dedicated macOS and Windows browser for `https://colonist.io/` with local game
 
 ## Current milestone
 
-Version 0.7.0 provides:
+Version 0.7.1 provides:
 
 * A persistent, dedicated Electron browser profile for Colonist
 * Native macOS and 64-bit Windows application packages with hardened Electron fuses
@@ -85,17 +85,19 @@ This builds the isolated main and preload bundles, runs unit, capture, decoding,
 ```bash
 npm run package:mac
 npm run archive:mac
+npm run package:mac:dmg
 ```
 
-The unpacked application is written to `release/`. The archive command creates a ZIP that preserves the macOS application bundle and writes a matching SHA-256 checksum. Pass `--out=/path` to the packaging script when a separate release directory is needed. Packaging enables Electron's restrictive production fuses and applies an ad hoc local signature. It is suitable for local testing. Public distribution additionally requires an Apple Developer signing identity, hardened runtime configuration, and notarization.
+The unpacked application is written to `release/`. The DMG command creates the native Mac distribution image with the app and an Applications shortcut, verifies the disk image, and writes a matching SHA-256 checksum. Pass `--out=/path` to the packaging script when a separate release directory is needed. Packaging enables Electron's restrictive production fuses and applies an ad hoc local signature. It is suitable for experimental distribution. A warning-free public Mac release additionally requires an Apple Developer signing identity, hardened runtime configuration, and notarization.
 
 ## Package the Windows app
 
 ```bash
 npm run package:win
+npm run package:win:installer
 ```
 
-The portable 64-bit application is written to `release/Catanatron Colonist-win32-x64/`, with a transferable ZIP and SHA-256 checksum beside it. Extract the ZIP and open `Catanatron Colonist.exe` on Windows. The build includes native executable metadata, a multi-resolution Windows icon, asar integrity, restrictive Electron fuses, and an `asInvoker` manifest so it never requests administrator access.
+The installer command creates a one-click, per-user Windows setup executable in `release/installer/`. Opening it installs Catanatron Colonist, creates desktop and Start Menu shortcuts, and launches the app without requesting administrator access. The packaged application includes native executable metadata, a multi-resolution Windows icon, asar integrity, restrictive Electron fuses, and an `asInvoker` manifest.
 
 For Windows on ARM:
 
@@ -103,9 +105,9 @@ For Windows on ARM:
 npm run package:win:arm64
 ```
 
-The package can be structurally verified on any host with `npm run verify:win`. On Windows, `npm run smoke:win` launches the real packaged executable in an isolated temporary profile, waits for a usable native window, validates its version metadata, writes `windows-smoke.json`, and closes the test process.
+The package can be structurally verified on any host with `npm run verify:win`. On Windows, `npm run smoke:win:installer` silently installs the real setup executable, verifies both shortcuts and the uninstall entry, launches the installed app in an isolated profile, validates its version metadata, and uninstalls it again.
 
-These local Windows packages are intentionally unsigned. They work as portable applications, but Windows may show a SmartScreen warning until a trusted Authenticode certificate is configured. Public distribution should sign and timestamp the executable after the fuse and asar steps.
+These Windows installers are intentionally unsigned. They work as per-user applications, but Windows may show a SmartScreen warning until a trusted Authenticode certificate is configured. Public distribution should sign and timestamp the installer after the fuse and asar steps.
 
 ## Security model
 

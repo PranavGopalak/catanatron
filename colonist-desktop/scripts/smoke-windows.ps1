@@ -1,5 +1,6 @@
 param(
   [string]$PackagePath = (Join-Path $PSScriptRoot "..\release\Catanatron Colonist-win32-x64"),
+  [string]$ProofPath = "",
   [int]$TimeoutSeconds = 45
 )
 
@@ -8,6 +9,9 @@ $resolvedPackage = (Resolve-Path $PackagePath).Path
 $executable = Join-Path $resolvedPackage "Catanatron Colonist.exe"
 if (-not (Test-Path $executable -PathType Leaf)) {
   throw "Windows executable not found: $executable"
+}
+if (-not $ProofPath) {
+  $ProofPath = Join-Path $resolvedPackage "windows-smoke.json"
 }
 
 $profile = Join-Path ([System.IO.Path]::GetTempPath()) ("catanatron-windows-smoke-" + [guid]::NewGuid().ToString("N"))
@@ -51,7 +55,7 @@ try {
     launched = $true
     elapsedSeconds = [math]::Round(((Get-Date) - $startedAt).TotalSeconds, 2)
   }
-  $proof | ConvertTo-Json | Set-Content -Path (Join-Path $resolvedPackage "windows-smoke.json") -Encoding UTF8
+  $proof | ConvertTo-Json | Set-Content -Path $ProofPath -Encoding UTF8
   $proof | ConvertTo-Json
 }
 finally {

@@ -70,3 +70,30 @@ test("keeps macOS packaging relocatable and archives the app bundle safely", () 
   assert(archive.includes("--keepParent"));
   assert(archive.includes("sha256"));
 });
+
+test("creates native direct installers for macOS and Windows", () => {
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(root, "package.json"), "utf8"),
+  );
+  const dmg = fs.readFileSync(
+    path.join(root, "scripts", "create-mac-dmg.cjs"),
+    "utf8",
+  );
+  const installerSmoke = fs.readFileSync(
+    path.join(root, "scripts", "smoke-windows-installer.ps1"),
+    "utf8",
+  );
+  assert.equal(manifest.build.nsis.oneClick, true);
+  assert.equal(manifest.build.nsis.perMachine, false);
+  assert.equal(manifest.build.nsis.allowElevation, false);
+  assert.equal(manifest.build.nsis.createDesktopShortcut, true);
+  assert.equal(manifest.build.nsis.createStartMenuShortcut, true);
+  assert.match(manifest.build.nsis.artifactName, /Setup\.\$\{ext\}$/);
+  assert(dmg.includes('fs.symlinkSync("/Applications"'));
+  assert(dmg.includes('"hdiutil", ["verify"'));
+  assert(dmg.includes('!== "koly"'));
+  assert(installerSmoke.includes('ArgumentList "/S"'));
+  assert(installerSmoke.includes("Catanatron Colonist.lnk"));
+  assert(installerSmoke.includes("smoke-windows.ps1"));
+  assert(installerSmoke.includes("Uninstall Catanatron Colonist.exe"));
+});
