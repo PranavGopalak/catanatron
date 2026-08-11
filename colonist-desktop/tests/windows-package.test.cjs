@@ -93,7 +93,8 @@ test("creates native direct installers for macOS and Windows", () => {
   assert(dmg.includes('"hdiutil", ["verify"'));
   assert(dmg.includes('!== "koly"'));
   assert(installerSmoke.includes('ArgumentList "/S"'));
-  assert(installerSmoke.includes("Catanatron Colonist.lnk"));
+  assert(installerSmoke.includes("$manifest.name"));
+  assert(installerSmoke.includes("$manifest.build.productName"));
   assert(installerSmoke.includes("smoke-windows.ps1"));
-  assert(installerSmoke.includes("Uninstall Catanatron Colonist.exe"));
+  assert(installerSmoke.includes('"Uninstall " + $productName + ".exe"'));
 });

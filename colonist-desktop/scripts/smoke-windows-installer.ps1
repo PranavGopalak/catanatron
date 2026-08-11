@@ -5,9 +5,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 $resolvedInstaller = (Resolve-Path $InstallerPath).Path
-$installDirectory = Join-Path $env:LOCALAPPDATA "Programs\Catanatron Colonist"
-$installedExecutable = Join-Path $installDirectory "Catanatron Colonist.exe"
-$uninstaller = Join-Path $installDirectory "Uninstall Catanatron Colonist.exe"
+$manifestPath = Join-Path $PSScriptRoot "..\package.json"
+$manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+$packageName = [string]$manifest.name
+$productName = [string]$manifest.build.productName
+$installDirectory = Join-Path $env:LOCALAPPDATA ("Programs\" + $packageName)
+$installedExecutable = Join-Path $installDirectory ($productName + ".exe")
+$uninstaller = Join-Path $installDirectory ("Uninstall " + $productName + ".exe")
 $proofPath = Join-Path (Split-Path $resolvedInstaller -Parent) "windows-installer-smoke.json"
 
 if (Test-Path $installDirectory) {
@@ -32,8 +36,8 @@ if (-not (Test-Path $uninstaller -PathType Leaf)) {
 
 & (Join-Path $PSScriptRoot "smoke-windows.ps1") -PackagePath $installDirectory -ProofPath $proofPath -TimeoutSeconds $TimeoutSeconds | Out-Null
 
-$desktopShortcut = Join-Path ([Environment]::GetFolderPath("Desktop")) "Catanatron Colonist.lnk"
-$startMenuShortcut = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Catanatron Colonist.lnk"
+$desktopShortcut = Join-Path ([Environment]::GetFolderPath("Desktop")) ($productName + ".lnk")
+$startMenuShortcut = Join-Path $env:APPDATA ("Microsoft\Windows\Start Menu\Programs\" + $productName + ".lnk")
 $proof = [ordered]@{
   installer = $resolvedInstaller
   installedExecutable = $installedExecutable
