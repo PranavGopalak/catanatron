@@ -1,5 +1,5 @@
 param(
-  [string]$InstallerPath = (Join-Path $PSScriptRoot "..\release\installer\Catanatron-Colonist-0.7.1-Windows-x64-Setup.exe"),
+  [string]$InstallerPath = (Join-Path $PSScriptRoot "..\release\installer\Catanatron-Colonist-0.8.0-Windows-x64-Setup.exe"),
   [int]$TimeoutSeconds = 60
 )
 

@@ -2,11 +2,13 @@
 
 const { ipcRenderer } = require("electron");
 const styles = require("./hud.css");
-const { ImmersiveGameUI } = require("./immersive-ui");
+const {
+  bindPlayersToNativeIdentities,
+  knowledgeFor,
+} = require("./immersive-model");
 const { platformUi } = require("./platform-ui");
 const {
   DICE_ODDS,
-  clamp,
   formatDuration,
   sanitizeHudState,
 } = require("./hud-state");
@@ -36,22 +38,25 @@ function isColonistPage() {
   return location.protocol === "https:" && (host === "colonist.io" || host.endsWith(".colonist.io"));
 }
 
+function isShellPage() {
+  return location.protocol === "file:" && location.pathname.endsWith("/shell.html");
+}
+
 function createMarkup() {
   return `
     <div class="hud-layer">
       <section class="hud-panel" role="complementary" aria-label="Catanatron game tools">
-        <header class="hud-header" data-drag-handle>
+        <header class="hud-header">
           <div class="hud-mark" aria-hidden="true">C</div>
           <div class="hud-title-block">
-            <span class="hud-title">Catanatron HUD</span>
+            <span class="hud-title">Catanatron</span>
             <span class="hud-subtitle"><span class="hud-status-dot"></span><span data-tracker-subtitle>Counting off</span></span>
           </div>
           <div class="hud-header-actions">
-            <button class="hud-icon-button" type="button" data-action="collapse" aria-label="Collapse HUD" title="Collapse HUD">−</button>
-            <button class="hud-icon-button" type="button" data-action="hide" aria-label="Hide HUD" title="Hide HUD">×</button>
+            <button class="hud-icon-button" type="button" data-action="collapse" aria-label="Collapse Catanatron sidebar" title="Collapse Catanatron sidebar">‹</button>
           </div>
         </header>
-        <nav class="hud-tabs" role="tablist" aria-label="HUD tools">
+        <nav class="hud-tabs" role="tablist" aria-label="Catanatron tools">
           <button class="hud-tab" type="button" role="tab" data-tab="cards">Cards</button>
           <button class="hud-tab" type="button" role="tab" data-tab="timer">Timer</button>
           <button class="hud-tab" type="button" role="tab" data-tab="odds">Odds</button>
@@ -61,48 +66,57 @@ function createMarkup() {
         <main class="hud-content" role="tabpanel"></main>
         <footer class="hud-footer" data-tracker-footer>Authorized experiment. Counting is off and no game data is being read.</footer>
       </section>
-      <button class="hud-launcher" type="button" data-action="show" aria-label="Show Catanatron HUD">
-        <span class="hud-launcher-mark" aria-hidden="true">C</span> Show HUD
-      </button>
       <div class="hud-toast" role="status" aria-live="polite"></div>
     </div>`;
 }
 
 function resourceGridMarkup(player) {
   return `<div class="tracker-resources">${Object.entries(RESOURCE_LABELS).map(([resource, [mark, label]]) => {
-    const range = player.cardRanges?.[resource];
-    const minimum = Number(range?.min ?? player.cards?.[resource] ?? 0);
-    const maximum = Number(range?.max ?? minimum);
-    const value = minimum === maximum ? String(minimum) : `${minimum} to ${maximum}`;
-    return `<div class="tracker-resource tracker-${resource}" title="${label}"><span>${mark}</span><strong>${value}</strong></div>`;
+    const knowledge = knowledgeFor(player, resource);
+    const value = knowledge.max === null
+      ? knowledge.min > 0 ? `${knowledge.min}+` : "?"
+      : knowledge.min === knowledge.max ? String(knowledge.min) : `${knowledge.min}–${knowledge.max}`;
+    const likelihood = knowledge.presencePct == null
+      ? knowledge.state === "unknown" ? "pending" : "possible"
+      : `${knowledge.presencePct}%`;
+    const title = knowledge.presencePct == null
+      ? `${label}: ${value}; probability is not yet defensible`
+      : `${label}: ${value}; ${likelihood} of feasible hands contain this resource`;
+    return `<div class="tracker-resource tracker-${resource} is-${knowledge.state}" title="${escapeHtml(title)}"><span>${mark}</span><strong>${value}</strong><small>${likelihood}</small></div>`;
   }).join("")}</div>`;
 }
 
 function playerMarkup(player, localHand) {
-  const isLocal = player.exactHand || (localHand?.player && localHand.player === player.name);
-  const visiblePoints = Number(player.score?.visiblePoints || 0);
-  const hiddenPoints = Number(player.score?.hiddenVictoryPoints || 0);
-  const hiddenRisk = Number(player.score?.hiddenVpRisk ?? hiddenPoints);
-  const vp = hiddenRisk > hiddenPoints ? `${visiblePoints}+${hiddenPoints} to ${hiddenRisk}` : `${visiblePoints + hiddenPoints}`;
+  const trackerName = player.trackerName || player.name;
+  const displayName = player.displayName || player.name;
+  const isLocal = player.exactHand || (localHand?.player && localHand.player === trackerName);
   const total = Number(player.handTotal ?? player.knownCards ?? 0);
   const identified = Number(player.knownCards || 0);
   const unknown = Math.max(0, total - identified);
-  const devTotal = Number(player.developmentCards?.total || player.devCardsBought || 0);
   const countCopy = isLocal
-    ? `${total} cards, exact hand`
-    : `${identified} guaranteed, ${unknown} unresolved, ${total} total`;
+    ? "Your exact hand"
+    : `${identified} guaranteed · ${unknown} unresolved`;
   return `
     <article class="tracker-player ${isLocal ? "is-local" : ""}">
       <div class="tracker-player-head">
         <div class="tracker-player-title">
           <span class="tracker-color color-${Number(player.color || 0)}" aria-hidden="true"></span>
-          <div><strong>${escapeHtml(player.name || "Unknown player")}</strong><span>${escapeHtml(player.colorLabel || "Color unknown")} · ${countCopy}</span></div>
+          <div><strong>${escapeHtml(displayName || "Unknown player")}</strong><span>${escapeHtml(player.colorLabel || "Color unknown")} · ${countCopy}</span></div>
         </div>
-        <div class="tracker-player-metrics"><span><strong>${vp}</strong> VP</span><span><strong>${devTotal}</strong> DEV</span></div>
+        <span class="tracker-card-total" title="Observed hand total"><strong>${total}</strong> cards</span>
       </div>
       ${resourceGridMarkup(player)}
       ${player.estimateConflict ? `<div class="tracker-warning">Protocol ledger and hand total differ by ${Number(player.estimateConflict)}. Ranges were widened.</div>` : ""}
     </article>`;
+}
+
+function devDeckMarkup(devDeck) {
+  if (!devDeck || !Array.isArray(devDeck.rows)) return "";
+  const rows = devDeck.rows.map((row) => {
+    const shortName = String(row.name || "").replace("victory point", "victory").replace("road building", "roads").replace("year of plenty", "plenty");
+    return `<span title="${escapeHtml(row.name)}: ${Number(row.played || 0)} played of ${Number(row.limit || 0)} total"><strong>${escapeHtml(shortName)}</strong>${Number(row.played || 0)} / ${Number(row.limit || 0)}</span>`;
+  }).join("");
+  return `<section class="tracker-dev-watch"><div><span class="tracker-section-label">Development watch</span><strong>${Number(devDeck.hiddenInHands || 0)} unplayed purchases</strong></div><div class="tracker-dev-rows">${rows}</div></section>`;
 }
 
 function cardsMarkup(tracker, state) {
@@ -120,23 +134,24 @@ function cardsMarkup(tracker, state) {
 
   const capture = tracker.capture || {};
   const counts = tracker.counts || {};
-  const players = tracker.players || [];
-  const status = capture.lastError ? "Capture error" : capture.attached ? "Listening" : "Starting";
-  const events = (tracker.recentEvents || []).slice(0, 5);
+  const players = bindPlayersToNativeIdentities(
+    tracker.players || [],
+    tracker.gameSurface?.identities || [],
+  );
+  const status = capture.lastError ? "Capture error" : capture.attached ? "Live" : "Starting";
+  const events = (tracker.recentEvents || []).slice(0, 2);
   return `
     <div class="tracker-overview">
-      <div><p class="hud-eyebrow">Live game ledger</p><h2 class="hud-heading">${status}</h2></div>
+      <div><p class="hud-eyebrow">Card intelligence</p><h2 class="hud-heading">Game state</h2></div>
+      <span class="tracker-live-pill ${capture.lastError ? "has-error" : ""}"><i></i>${status}</span>
       <button class="hud-button compact" type="button" data-action="reset-tracker">New game</button>
     </div>
-    <div class="tracker-stream ${capture.lastError ? "has-error" : ""}">
-      <span><strong>${Number(counts.frames || 0)}</strong> frames</span>
-      <span><strong>${Number(counts.decoded || 0)}</strong> decoded</span>
-      <span><strong>${Number(counts.events || 0)}</strong> events</span>
-      <span><strong>${Number(counts.uncertain || 0)}</strong> unknown</span>
-    </div>
+    <p class="tracker-session">${players.length ? `${players.length} players matched · ` : ""}${Number(counts.frames || 0).toLocaleString()} frames analyzed locally</p>
     ${capture.lastError ? `<div class="tracker-warning">${escapeHtml(capture.lastError)}</div>` : ""}
     ${players.length ? `<div class="tracker-player-list">${players.map((player) => playerMarkup(player, tracker.hand)).join("")}</div>` : `
       <div class="tracker-empty waiting"><strong>Waiting for game state</strong><span>Join or start a game after counting is enabled. The first complete state frame will populate every player.</span></div>`}
+    ${devDeckMarkup(tracker.devDeck)}
+    ${tracker.tradeWatch?.line ? `<div class="tracker-signal"><span>Trade watch</span><strong>${escapeHtml(tracker.tradeWatch.line)}</strong></div>` : ""}
     ${events.length ? `<div class="tracker-events"><span class="tracker-section-label">Recent game events</span>${events.map((event) => `<div><span>${escapeHtml(event.type || "update")}</span><p>${escapeHtml(event.line)}</p></div>`).join("")}</div>` : ""}`;
 }
 
@@ -185,8 +200,8 @@ function notesMarkup(notes) {
 function settingsMarkup(state, tracker, awaitingReset) {
   const capture = tracker.capture || {};
   return `
-    <p class="hud-eyebrow">HUD preferences</p>
-    <h2 class="hud-heading">Display setup</h2>
+    <p class="hud-eyebrow">Browser preferences</p>
+    <h2 class="hud-heading">Catanatron setup</h2>
     <div class="hud-setting tracker-consent">
       <div class="hud-setting-head"><span>Authorized card counting</span><span class="hud-setting-value">${state.trackingEnabled ? capture.attached ? "LIVE" : "STARTING" : "OFF"}</span></div>
       <p class="hud-description">Captures Colonist binary WebSocket frames locally and converts them into card totals and uncertainty ranges. It never performs game actions.</p>
@@ -198,25 +213,18 @@ function settingsMarkup(state, tracker, awaitingReset) {
       </div>
     </div>
     <div class="hud-setting">
-      <div class="hud-setting-head"><span>Panel opacity</span><span class="hud-setting-value" data-opacity-value>${Math.round(state.opacity * 100)}%</span></div>
-      <input class="hud-range" type="range" min="55" max="100" step="1" value="${Math.round(state.opacity * 100)}" data-setting="opacity" aria-label="Panel opacity">
-    </div>
-    <div class="hud-setting">
-      <div class="hud-setting-head"><span>Show or hide shortcut</span></div>
+      <div class="hud-setting-head"><span>Collapse or expand sidebar</span></div>
       <span class="hud-shortcut" title="${PLATFORM_UI.shortcutLabel}">${PLATFORM_UI.shortcutGlyphs}</span>
     </div>
     <div class="hud-setting">
-      <div class="hud-setting-head"><span>Local HUD data</span></div>
-      <p class="hud-description">Reset notes, counting consent, position, visibility, and display preferences.</p>
-      <div class="hud-button-row">
-        <button class="hud-button danger" type="button" data-action="reset-state">${awaitingReset ? "Confirm reset" : "Reset HUD data"}</button>
-        <button class="hud-button" type="button" data-action="center-panel">Center panel</button>
-      </div>
+      <div class="hud-setting-head"><span>Local Catanatron data</span></div>
+      <p class="hud-description">Reset notes, counting consent, and sidebar preferences.</p>
+      <button class="hud-button danger hud-button-full" type="button" data-action="reset-state">${awaitingReset ? "Confirm reset" : "Reset local data"}</button>
     </div>`;
 }
 
-async function mountHud() {
-  if (!isColonistPage() || document.getElementById(HOST_ID)) return;
+async function mountBrowserShell() {
+  if (!isShellPage() || document.getElementById(HOST_ID)) return;
 
   let state;
   try {
@@ -231,6 +239,7 @@ async function mountHud() {
     hand: null,
     recentEvents: [],
     counts: {},
+    gameSurface: { active: false, identities: [] },
   };
 
   const host = document.createElement("div");
@@ -241,10 +250,9 @@ async function mountHud() {
   sheet.replaceSync(styles);
   shadow.adoptedStyleSheets = [sheet];
   shadow.innerHTML = createMarkup();
-  document.documentElement.appendChild(host);
+  document.body.appendChild(host);
 
   const panel = shadow.querySelector(".hud-panel");
-  const launcher = shadow.querySelector(".hud-launcher");
   const content = shadow.querySelector(".hud-content");
   const toast = shadow.querySelector(".hud-toast");
   const collapseButton = shadow.querySelector('[data-action="collapse"]');
@@ -259,36 +267,26 @@ async function mountHud() {
   let elapsedBeforeStart = 0;
   let startedAt = null;
   let timerInterval = null;
-  let dragState = null;
-  let immersive = null;
-
-  function syncImmersive() {
-    immersive?.update(tracker, state);
-  }
+  let effectiveCollapsed = state.collapsed;
 
   function currentElapsed() {
     return elapsedBeforeStart + (startedAt === null ? 0 : Date.now() - startedAt);
   }
 
-  function applyPosition() {
-    const rect = panel.getBoundingClientRect();
-    const fallbackX = Math.max(12, window.innerWidth - rect.width - 18);
-    const x = clamp(state.position.x ?? fallbackX, 8, Math.max(8, window.innerWidth - rect.width - 8));
-    const y = clamp(state.position.y, 8, Math.max(8, window.innerHeight - rect.height - 8));
-    state.position = { x, y };
-    panel.style.left = `${x}px`;
-    panel.style.top = `${y}px`;
+  function paintShellState({ forced = false } = {}) {
+    panel.classList.toggle("is-collapsed", effectiveCollapsed);
+    panel.classList.toggle("is-forced-collapsed", forced);
+    collapseButton.textContent = effectiveCollapsed ? "›" : "‹";
+    const action = effectiveCollapsed ? "Expand" : "Collapse";
+    const suffix = forced ? " (window is too narrow)" : "";
+    collapseButton.setAttribute("aria-label", `${action} Catanatron sidebar${suffix}`);
+    collapseButton.title = `${action} Catanatron sidebar${suffix}`;
   }
 
   function applyShellState() {
-    panel.classList.toggle("is-collapsed", state.collapsed);
-    panel.classList.toggle("is-hidden", state.hidden);
-    launcher.classList.toggle("is-visible", state.hidden);
-    panel.style.opacity = String(state.opacity);
-    collapseButton.textContent = state.collapsed ? "+" : "−";
-    collapseButton.setAttribute("aria-label", state.collapsed ? "Expand HUD" : "Collapse HUD");
-    collapseButton.title = state.collapsed ? "Expand HUD" : "Collapse HUD";
-    requestAnimationFrame(applyPosition);
+    effectiveCollapsed = state.collapsed;
+    paintShellState();
+    ipcRenderer.send("browser-shell:set-collapsed", state.collapsed);
   }
 
   function scheduleSave() {
@@ -338,7 +336,6 @@ async function mountHud() {
     }
     if (state.activeTab === "settings") content.innerHTML = settingsMarkup(state, tracker, awaitingReset);
     applyTrackerChrome();
-    syncImmersive();
   }
 
   async function toggleTracking() {
@@ -407,30 +404,11 @@ async function mountHud() {
       applyShellState();
       scheduleSave();
     }
-    if (action === "hide") {
-      state.hidden = true;
-      applyShellState();
-      scheduleSave();
-    }
-    if (action === "show") {
-      state.hidden = false;
-      applyShellState();
-      scheduleSave();
-    }
     if (action === "timer-toggle") setTimerRunning(startedAt === null);
     if (action === "timer-new") resetTimer(true);
     if (action === "timer-reset") resetTimer(false);
     if (action === "toggle-tracking") await toggleTracking();
     if (action === "reset-tracker") await resetTracker();
-    if (action === "center-panel") {
-      const rect = panel.getBoundingClientRect();
-      state.position = {
-        x: Math.max(8, (window.innerWidth - rect.width) / 2),
-        y: Math.max(8, (window.innerHeight - rect.height) / 2),
-      };
-      applyPosition();
-      scheduleSave();
-    }
     if (action === "reset-state") {
       if (!awaitingReset) {
         awaitingReset = true;
@@ -454,7 +432,7 @@ async function mountHud() {
       awaitingReset = false;
       applyShellState();
       renderContent();
-      showToast("HUD data reset");
+      showToast("Local Catanatron data reset");
     }
   });
 
@@ -463,13 +441,6 @@ async function mountHud() {
       state.notes = event.target.value;
       const status = shadow.querySelector("[data-save-status]");
       if (status) status.textContent = "Saving…";
-      scheduleSave();
-    }
-    if (event.target.matches('[data-setting="opacity"]')) {
-      state.opacity = clamp(Number(event.target.value) / 100, 0.55, 1);
-      panel.style.opacity = String(state.opacity);
-      const value = shadow.querySelector("[data-opacity-value]");
-      if (value) value.textContent = `${Math.round(state.opacity * 100)}%`;
       scheduleSave();
     }
     if (event.target.matches('[data-setting="player-name"]')) {
@@ -491,41 +462,11 @@ async function mountHud() {
     }
   });
 
-  const dragHandle = shadow.querySelector("[data-drag-handle]");
-  dragHandle.addEventListener("pointerdown", (event) => {
-    if (event.target.closest("button")) return;
-    const rect = panel.getBoundingClientRect();
-    dragState = { pointerId: event.pointerId, offsetX: event.clientX - rect.left, offsetY: event.clientY - rect.top };
-    panel.classList.add("is-dragging");
-    dragHandle.setPointerCapture(event.pointerId);
-  });
-  dragHandle.addEventListener("pointermove", (event) => {
-    if (!dragState || event.pointerId !== dragState.pointerId) return;
-    const rect = panel.getBoundingClientRect();
-    state.position = {
-      x: clamp(event.clientX - dragState.offsetX, 8, Math.max(8, window.innerWidth - rect.width - 8)),
-      y: clamp(event.clientY - dragState.offsetY, 8, Math.max(8, window.innerHeight - rect.height - 8)),
-    };
-    applyPosition();
-  });
-  const finishDrag = (event) => {
-    if (!dragState || event.pointerId !== dragState.pointerId) return;
-    dragState = null;
-    panel.classList.remove("is-dragging");
-    scheduleSave();
-  };
-  dragHandle.addEventListener("pointerup", finishDrag);
-  dragHandle.addEventListener("pointercancel", finishDrag);
-
-  window.addEventListener("resize", () => {
-    applyPosition();
-    scheduleSave();
-  });
   window.addEventListener("keydown", (event) => {
     if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "h") {
       event.preventDefault();
       event.stopImmediatePropagation();
-      state.hidden = !state.hidden;
+      state.collapsed = !state.collapsed;
       applyShellState();
       scheduleSave();
     }
@@ -539,22 +480,11 @@ async function mountHud() {
     if (state.activeTab === "cards" || state.activeTab === "settings") renderContent();
     else {
       applyTrackerChrome();
-      syncImmersive();
     }
   });
-
-  const attachmentObserver = new MutationObserver(() => {
-    if (!document.documentElement.contains(host)) document.documentElement.appendChild(host);
-  });
-  attachmentObserver.observe(document.documentElement, { childList: true });
-
-  immersive = new ImmersiveGameUI({
-    onToggleTracking: toggleTracking,
-    onResetTracker: resetTracker,
-    onActiveChange(active) {
-      panel.classList.toggle("is-game-suppressed", active);
-      launcher.classList.toggle("is-game-suppressed", active);
-    },
+  ipcRenderer.on("browser-shell:layout", (_event, layout) => {
+    effectiveCollapsed = layout?.collapsed === true;
+    paintShellState({ forced: layout?.forced === true });
   });
   applyShellState();
   renderContent();
@@ -569,8 +499,69 @@ async function mountHud() {
   }
 }
 
+const GAME_ROW_SELECTOR = '[class*="playerRow"][data-player-color]';
+
+function gamePlayerName(row) {
+  const node = row.querySelector('[data-player-username], [class*="username"], [class*="playerName"], [class*="player-name"]');
+  return node?.textContent?.trim() || "";
+}
+
+function gameSurfaceSnapshot() {
+  const game = document.querySelector("#ui-game");
+  const playerInformation = document.querySelector('[data-player-information-container="true"]');
+  const rows = [];
+  const seen = new Set();
+  for (const row of playerInformation?.querySelectorAll(GAME_ROW_SELECTOR) || []) {
+    seen.add(row);
+    rows.push(row);
+  }
+  for (const row of game?.querySelectorAll(GAME_ROW_SELECTOR) || []) {
+    if (seen.has(row)) continue;
+    seen.add(row);
+    rows.push(row);
+  }
+  return {
+    active: Boolean(game && playerInformation && rows.length),
+    identities: rows.map((row) => ({
+      color: row.dataset.playerColor || "",
+      name: gamePlayerName(row),
+    })),
+  };
+}
+
+function mountGameBridge() {
+  if (!isColonistPage()) return;
+  let lastDigest = "";
+  let scheduled = false;
+  const publish = () => {
+    scheduled = false;
+    const snapshot = gameSurfaceSnapshot();
+    const digest = JSON.stringify(snapshot);
+    if (digest === lastDigest) return;
+    lastDigest = digest;
+    ipcRenderer.send("game:surface-state", snapshot);
+  };
+  const schedule = () => {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(publish);
+  };
+  new MutationObserver(schedule).observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+  });
+  window.addEventListener("resize", schedule, { passive: true });
+  setInterval(schedule, 1000);
+  schedule();
+}
+
 if (document.readyState === "loading") {
-  window.addEventListener("DOMContentLoaded", mountHud, { once: true });
+  window.addEventListener("DOMContentLoaded", () => {
+    if (isShellPage()) mountBrowserShell();
+    else mountGameBridge();
+  }, { once: true });
 } else {
-  mountHud();
+  if (isShellPage()) mountBrowserShell();
+  else mountGameBridge();
 }

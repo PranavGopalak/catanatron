@@ -53,7 +53,7 @@ async function verifyWindowsPackage(outputPath, { expectedArch = "x64" } = {}) {
   assert(fs.existsSync(path.join(resolved, "libEGL.dll")), "ANGLE runtime should exist");
 
   const packagedFiles = new Set(asar.listPackage(asarPath).map(normalizeAsarPath));
-  for (const required of ["/dist/main.cjs", "/dist/preload.cjs", "/package.json", "/assets/icon.png"]) {
+  for (const required of ["/dist/main.cjs", "/dist/preload.cjs", "/dist/shell.html", "/package.json", "/assets/icon.png"]) {
     assert(packagedFiles.has(required), `app.asar should contain ${required}`);
   }
   const packagedManifest = JSON.parse(asar.extractFile(asarPath, "package.json").toString("utf8"));

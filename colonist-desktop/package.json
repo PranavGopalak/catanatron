@@ -1,7 +1,7 @@
 {
   "name": "catanatron-colonist-desktop",
-  "version": "0.7.1",
-  "description": "A security-hardened Colonist desktop browser with immersive, local game-state intelligence.",
+  "version": "0.8.0",
+  "description": "A security-hardened Colonist desktop browser with an app-owned local game-intelligence sidebar.",
   "private": true,
   "main": "dist/main.cjs",
   "scripts": {

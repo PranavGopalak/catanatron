@@ -1,22 +1,22 @@
 # Catanatron Colonist Desktop
 
-A dedicated macOS and Windows browser for `https://colonist.io/` with local game intelligence rendered directly into Colonist’s live interface.
+A dedicated macOS and Windows browser for `https://colonist.io/` with local game intelligence in a permanent, app-owned browser sidebar.
 
 ## Current milestone
 
-Version 0.7.1 provides:
+Version 0.8.0 provides:
 
 * A persistent, dedicated Electron browser profile for Colonist
 * Native macOS and 64-bit Windows application packages with hardened Electron fuses
 * A temporary, HTTPS-only Apple ID authentication path initiated exclusively by Colonist
 * Strict navigation, popup, download, permission, renderer, and IPC boundaries
-* A dedicated left intelligence column with no mutations inside Colonist’s native player rows
-* Large, flat resource ranges prioritized at the top for immediate scanning
-* A readable multiplayer intelligence column that occupies 27 percent of the rendered page and scales with the window
+* A permanent 372 pixel browser sidebar owned by the desktop app, not injected into Colonist
+* Large, readable resource ranges and feasible-hand percentages prioritized for immediate scanning
+* A compact 58 pixel collapsed rail that returns almost the entire window to Colonist
 * Native player hands, the complete right sidebar, chat, settings, board, hand, and action controls preserved
 * Player labels taken directly from Colonist’s native rows, with tracker data bound by player color and fail-closed pending states for unmatched identities
-* Side advertisement gutters reclaimed while the native game reflows beside the column
-* A compact in-game intelligence button for Beginner Mode and narrow windows
+* A separate secured Colonist page surface that resizes beside the app sidebar without changing the game DOM
+* Automatic compact mode for narrow windows
 * Consent gated, local WebSocket card counting for an authorized experiment
 * Exact hand totals for every player and exact resource composition for the local player
 * Bounded resource ranges for opponents when individual card identities are hidden
@@ -31,12 +31,12 @@ Version 0.7.1 provides:
 * A manual turn timer
 * Two-dice probability reference
 * Locally persisted notes
-* Adjustable HUD opacity with `Command + Shift + H` on macOS and `Ctrl + Shift + H` on Windows
+* Instant sidebar collapse with `Command + Shift + H` on macOS and `Ctrl + Shift + H` on Windows
 * A complete local test and packaging workflow
 
 Counting is off by default. When the user explicitly enables the authorized experiment, the Electron main process captures binary WebSocket frames through Chromium's debugging protocol and decodes them with the existing `colonist-page-watcher/src/ws-core.js` implementation. The app never performs game actions.
 
-Raw frames stay in volatile main-process memory for the current session. Only a normalized tracker snapshot reaches the isolated HUD. Frames and card state are cleared when counting is disabled, the user selects New Game, a new-game protocol event is decoded, the page performs a full navigation, or the app closes.
+Raw frames stay in volatile main-process memory for the current session. Only a normalized tracker snapshot reaches the isolated app sidebar. Frames and card state are cleared when counting is disabled, the user selects New Game, a new-game protocol event is decoded, the page performs a full navigation, or the app closes.
 
 ## Requirements
 
@@ -62,15 +62,11 @@ npm run start:demo
 
 ## Controls
 
-Outside a live game, use the setup HUD to enable counting, manage the manual timer, view dice odds, and edit local notes. It can be dragged, collapsed, hidden, or restored with `Command + Shift + H` on macOS or `Ctrl + Shift + H` on Windows.
+The left sidebar is part of the Electron application itself. Colonist loads in its own sandboxed page surface to the right, so native player rows, chat, settings, the board, the right sidebar, the hand, and action controls remain untouched. Catanatron reads a bounded native identity snapshot only to bind decoded tracker records to the names and colors currently shown by Colonist.
 
-Inside a live game, the setup HUD automatically gets out of the way. Catanatron renders all resource knowledge and derived game-state analytics in its own left column. It reads native player rows only to mirror their seating order and never inserts elements into them, hides their cards, or changes the right sidebar.
+Use the sidebar to enable counting, inspect card knowledge, manage the manual timer, view dice odds, and edit local notes. Select New Game to clear the current ledger manually. The Setup tab can disable and clear capture or reset all locally saved Catanatron data.
 
-Multiplayer games use a cream and blue intelligence column on the left. It occupies 27 percent of the rendered page, with a 320 CSS pixel minimum, and reclaims the side advertisement gutters while Colonist’s board and complete native right sidebar reflow into the remaining space. The layout requires more than 880 CSS pixels for the native game and automatically returns to compact mode when that guarantee cannot be met. Resource ranges appear first, followed only by actionable watch items and compact development card tracking.
-
-Beginner Mode and narrow windows use a small C button beside the native settings control because tutorial objectives occupy Colonist’s left edge. The button opens the same intelligence on demand without permanently covering the tutorial. Resource ranges, development card usage, resource affordability risk, and actionable trade risk remain available in both modes. If counting is off, the intelligence surface offers a direct Enable counting control.
-
-Select New Game to clear the current ledger manually. The settings tab can disable and clear capture, change panel opacity, center the panel, or reset all locally saved HUD data.
+The sidebar is 372 pixels wide on normal desktop windows. Collapse it to a 58 pixel browser rail with its chevron or `Command + Shift + H` on macOS and `Ctrl + Shift + H` on Windows. Windows below 1080 pixels wide use compact mode automatically so the native game keeps useful space.
 
 ## Validation
 
@@ -111,11 +107,11 @@ These Windows installers are intentionally unsigned. They work as per-user appli
 
 ## Security model
 
-Colonist is remote and therefore untrusted content from Electron's point of view. The game renderer has Node integration disabled, context isolation and Chromium sandboxing enabled, normal web security preserved, and no general Electron API bridge. The isolated preload owns the setup HUD and immersive annotations, and exposes no API to the page.
+Colonist is remote and therefore untrusted content from Electron's point of view. The game renderer has Node integration disabled, context isolation and Chromium sandboxing enabled, normal web security preserved, and no general Electron API bridge. A local file renderer owns the application sidebar, while Colonist runs in a separate `WebContentsView`. The shared preload exposes no API to the remote page and never inserts Catanatron interface elements into its DOM.
 
-Normal navigation is limited to HTTPS URLs on `colonist.io` and its subdomains. When Colonist starts `/auth/apple` or `/auth-link/apple`, the browser temporarily permits same-window navigation to the exact `appleid.apple.com` host for up to five minutes. The exception closes when navigation returns to Colonist. Other external navigation, popups, downloads, embedded webviews, and browser permission requests are denied. HUD and tracker IPC validate the sender, accept only narrow schemas, and sanitize every persisted value.
+Normal navigation is limited to HTTPS URLs on `colonist.io` and its subdomains. When Colonist starts `/auth/apple` or `/auth-link/apple`, the browser temporarily permits same-window navigation to the exact `appleid.apple.com` host for up to five minutes. The exception closes when navigation returns to Colonist. Other external navigation, popups, downloads, embedded webviews, and browser permission requests are denied. Sidebar and tracker IPC validate whether the sender is the local shell or remote game surface, accept only narrow schemas, and sanitize every persisted value.
 
-The WebSocket listener uses Electron's main-process debugger API and sends no API bridge into the remote renderer. Binary frames are bounded in size, text frames are ignored, retained history is capped at 20,000 frames, analysis is throttled, and raw payloads are never sent to the HUD or written to disk.
+The WebSocket listener uses Electron's main-process debugger API and sends no API bridge into the remote renderer. Binary frames are bounded in size, text frames are ignored, retained history is capped at 20,000 frames, analysis is throttled, and raw payloads are never sent to the sidebar or written to disk.
 
 ## Experimental authorization boundary
 

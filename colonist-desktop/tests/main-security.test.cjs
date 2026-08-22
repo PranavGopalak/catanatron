@@ -7,7 +7,7 @@ const path = require("node:path");
 
 const mainSource = fs.readFileSync(path.join(__dirname, "..", "src", "main.js"), "utf8");
 
-test("remote renderer retains Electron security boundaries", () => {
+test("browser shell and remote game surface retain Electron security boundaries", () => {
   const requiredSettings = [
     "nodeIntegration: false",
     "nodeIntegrationInWorker: false",
@@ -20,6 +20,8 @@ test("remote renderer retains Electron security boundaries", () => {
   ];
   for (const setting of requiredSettings) assert(mainSource.includes(setting), setting);
   assert(mainSource.includes("app.enableSandbox()"), "global Electron sandbox should be enabled");
+  assert(mainSource.includes("new WebContentsView"), "Colonist should run in a separate secured page surface");
+  assert(mainSource.includes("mainWindow.contentView.addChildView(gameView)"), "the app should own the browser layout");
 });
 
 test("session permissions, downloads, popups, and navigation are guarded", () => {
@@ -31,7 +33,8 @@ test("session permissions, downloads, popups, and navigation are guarded", () =>
     "will-redirect",
     "will-attach-webview",
     "setWindowOpenHandler",
-    "isTrustedSender",
+    "isTrustedShellSender",
+    "isTrustedGameSender",
     "tracker:set-enabled",
   ];
   for (const guard of requiredGuards) assert(mainSource.includes(guard), guard);
@@ -41,6 +44,7 @@ test("session permissions, downloads, popups, and navigation are guarded", () =>
     "self-targeted authentication windows must activate policy before programmatic navigation"
   );
   assert(!mainSource.includes("contextBridge.exposeInMainWorld"), "remote page must not receive an Electron API bridge");
+  assert(mainSource.includes("guardShellNavigation"), "local browser chrome navigation should fail closed");
 });
 
 test("loads the first Colonist page before restoring persisted capture", () => {

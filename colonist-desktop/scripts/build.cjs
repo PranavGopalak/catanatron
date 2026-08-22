@@ -1,6 +1,7 @@
 "use strict";
 
 const path = require("node:path");
+const fs = require("node:fs");
 const esbuild = require("esbuild");
 
 const root = path.join(__dirname, "..");
@@ -21,6 +22,11 @@ esbuild.build({
   legalComments: "none",
   sourcemap: false,
   minify: false,
+}).then(() => {
+  fs.copyFileSync(
+    path.join(root, "src", "shell.html"),
+    path.join(root, "dist", "shell.html"),
+  );
 }).catch((error) => {
   console.error(error);
   process.exitCode = 1;
